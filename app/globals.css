@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   MoSPI × iGOT Karmayogi — Design Tokens
+   Three-layer system: primitive → semantic → component
+   Source of truth: design-system/mospi-karmayogi/MASTER.md
+   ========================================================================== */
+
+@layer base {
+  :root {
+    /* ---- Primitives -------------------------------------------------- */
+    --navy-950: 15 23 42;      /* #0F172A */
+    --navy-900: 30 58 138;     /* #1E3A8A */
+    --ashoka-600: 2 132 199;   /* #0284C7 */
+    --emerald-600: 5 150 105;  /* #059669 */
+    --saffron-600: 217 119 6;  /* #D97706 */
+    --slate-50: 248 250 252;   /* #F8FAFC */
+    --slate-200: 226 232 240; /* #E2E8F0 */
+    --slate-500: 100 116 139; /* #64748B */
+    --white: 255 255 255;
+    --red-600: 220 38 38;
+
+    /* ---- Semantic (light mode default) -------------------------------- */
+    --color-bg: var(--slate-50);
+    --color-surface: var(--white);
+    --color-surface-raised: var(--white);
+    --color-fg: var(--navy-950);
+    --color-fg-muted: var(--slate-500);
+    --color-border: var(--slate-200);
+
+    --color-primary: var(--navy-900);
+    --color-on-primary: var(--white);
+    --color-secondary: var(--ashoka-600);
+    --color-on-secondary: var(--white);
+    --color-tertiary: var(--emerald-600);
+    --color-on-tertiary: var(--white);
+    --color-accent: var(--saffron-600);
+    --color-on-accent: var(--navy-950);
+
+    --color-success: var(--emerald-600);
+    --color-danger: var(--red-600);
+    --color-ring: var(--ashoka-600);
+
+    /* ---- Component tokens --------------------------------------------- */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.625rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+
+    --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
+    --shadow-md: 0 4px 12px rgb(15 23 42 / 0.08);
+    --shadow-lg: 0 16px 40px rgb(15 23 42 / 0.12);
+    --shadow-glow-accent: 0 0 0 1px rgb(var(--saffron-600) / 0.4), 0 8px 24px rgb(var(--saffron-600) / 0.25);
+    --shadow-glow-secondary: 0 0 0 1px rgb(var(--ashoka-600) / 0.35), 0 8px 24px rgb(var(--ashoka-600) / 0.2);
+
+    /* --font-ui and --font-mono are NOT declared here on purpose: they are
+       injected by next/font in app/layout.tsx (Inter + JetBrains Mono),
+       which also supplies the correct system-font fallback stack. Declaring
+       a second, static value for the same variable here would race with
+       next/font's class-scoped rule depending on stylesheet order. */
+  }
+
+  .dark {
+    --color-bg: var(--navy-950);
+    --color-surface: 22 32 58;         /* slightly lifted navy */
+    --color-surface-raised: 27 39 68;
+    --color-fg: var(--slate-50);
+    --color-fg-muted: 148 163 184;     /* slate-400 */
+    --color-border: 39 55 89;
+
+    --color-primary: var(--ashoka-600);
+    --color-on-primary: var(--white);
+    --color-secondary: var(--navy-900);
+    --color-on-secondary: var(--white);
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 16px rgb(0 0 0 / 0.45);
+    --shadow-lg: 0 20px 48px rgb(0 0 0 / 0.55);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  body {
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-fg));
+    font-family: var(--font-ui);
+  }
+
+  ::selection {
+    background-color: rgb(var(--color-accent) / 0.25);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-ring));
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+@layer utilities {
+  .font-data {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+
+  .bg-dot-grid {
+    background-image: radial-gradient(rgb(var(--color-fg-muted) / 0.35) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .glass-panel {
+    background: rgb(var(--color-surface) / 0.6);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgb(var(--color-border) / 0.6);
+  }
+}

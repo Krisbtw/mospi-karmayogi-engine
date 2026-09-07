@@ -4,8 +4,10 @@ import { useState } from "react";
 import { Navbar } from "@/components/navbar";
 import { HeroSection } from "@/components/hero-section";
 import { CadreProfileBar } from "@/components/dashboard/cadre-profile-bar";
-import { CompetencyRadar } from "@/components/dashboard/competency-radar";
-import { IgotRecommendations } from "@/components/dashboard/igot-recommendations";
+import { CompetencyRadarCard } from "@/components/dashboard/competency-radar-card";
+import { CourseRecommendationsList } from "@/components/dashboard/course-recommendations-list";
+import { MetricStrip } from "@/components/dashboard/metric-strip";
+import { DocumentDropzone } from "@/components/documents/document-dropzone";
 import { TdAdminDashboard } from "@/components/dashboard/td-admin-dashboard";
 import { DocumentUploadModal } from "@/components/documents/document-upload-modal";
 import { QuizGeneratorModal } from "@/components/assessment/quiz-generator-modal";
@@ -166,6 +168,13 @@ export default function HomePage() {
 
         {/* Dashboard Section */}
         <section id="dashboard" className="mx-auto max-w-7xl px-6 py-12 scroll-mt-16">
+          {/* Dynamic 21st.dev Metric Strip */}
+          <MetricStrip
+            officer={currentOfficer}
+            competencies={currentCompetencies}
+            completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length}
+          />
+
           {/* Officer Cadre Bar & Switcher */}
           <CadreProfileBar
             currentOfficer={currentOfficer}
@@ -179,23 +188,32 @@ export default function HomePage() {
 
           {/* Conditional View: Cadre Officer vs Training Division Admin */}
           {activeView === "OFFICER" ? (
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-              {/* Left Column: Dynamic Competency Radar */}
-              <div className="lg:col-span-6">
-                <CompetencyRadar
-                  officerName={currentOfficer.name}
-                  cadreRank={currentOfficer.cadreRank}
-                  data={currentCompetencies}
-                  onTakeQuizForCompetency={handleTakeQuizForCompetency}
-                />
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+                {/* Left Column: Dynamic Competency Radar Card */}
+                <div className="lg:col-span-6">
+                  <CompetencyRadarCard
+                    officerName={currentOfficer.name}
+                    cadreRank={currentOfficer.cadreRank}
+                    data={currentCompetencies}
+                    onTakeQuizForCompetency={handleTakeQuizForCompetency}
+                  />
+                </div>
+
+                {/* Right Column: Animated iGOT Karmayogi Course Recommendations */}
+                <div className="lg:col-span-6">
+                  <CourseRecommendationsList
+                    userId={currentOfficer.id}
+                    recommendations={recommendations}
+                    onCourseCompleted={handleCourseCompleted}
+                  />
+                </div>
               </div>
 
-              {/* Right Column: iGOT Karmayogi Course Recommendations */}
-              <div className="lg:col-span-6">
-                <IgotRecommendations
-                  userId={currentOfficer.id}
-                  recommendations={recommendations}
-                  onCourseCompleted={handleCourseCompleted}
+              {/* Statistical Guideline RAG Ingestion Dropzone */}
+              <div>
+                <DocumentDropzone
+                  onDocumentAdded={handleDocumentAdded}
                 />
               </div>
             </div>

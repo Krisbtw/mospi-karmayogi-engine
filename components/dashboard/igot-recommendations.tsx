@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { ExternalLink, RefreshCw, CheckCircle2, CircleDashed, Award, Sparkles } from "lucide-react";
 import { IgotCourse } from "@/lib/data-service";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface IgotRecommendationsProps {
   userId: string;
@@ -11,11 +14,14 @@ interface IgotRecommendationsProps {
   onCourseCompleted?: (competencyFracCode: string, courseTitle: string) => void;
 }
 
-const STATUS_LABEL: Record<IgotCourse["status"], string> = {
-  RECOMMENDED: "Recommended for Cadre Gap",
-  ENROLLED: "Enrolled in Sunbird",
-  IN_PROGRESS: "In Progress (iGOT)",
-  COMPLETED: "Completed & Certified",
+const STATUS_MAP: Record<
+  IgotCourse["status"],
+  { label: string; variant: "warning" | "info" | "secondary" | "success" }
+> = {
+  RECOMMENDED: { label: "Recommended for Gap", variant: "warning" },
+  ENROLLED: { label: "Enrolled in Sunbird", variant: "info" },
+  IN_PROGRESS: { label: "In Progress (iGOT)", variant: "secondary" },
+  COMPLETED: { label: "Completed & Certified", variant: "success" },
 };
 
 export function IgotRecommendations({
@@ -29,7 +35,6 @@ export function IgotRecommendations({
   const [completedSuccess, setCompletedSuccess] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  // Sync with internal state if recommendations change
   useState(() => {
     setItems(recommendations);
   });
@@ -83,124 +88,128 @@ export function IgotRecommendations({
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-6 shadow-xl backdrop-blur-md">
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-sky-400">
-            Personalized Training Pathway
-          </p>
-          <h3 className="text-lg font-semibold text-white">iGOT Karmayogi Bharat Courses</h3>
+    <Card className="border-slate-800/80 bg-slate-900/90 shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-sky-400 font-mono">
+              Personalized Training Pathway
+            </span>
+            <CardTitle className="mt-1 text-lg">iGOT Karmayogi Bharat Courses</CardTitle>
+            <CardDescription className="mt-0.5">
+              Certified capacity building modules aligned with Bharat FRAC standards
+            </CardDescription>
+          </div>
+          <Badge variant="secondary" className="font-mono text-xs">
+            Sunbird Linked
+          </Badge>
         </div>
-        <span className="rounded-full bg-sky-500/15 border border-sky-500/30 px-2.5 py-0.5 text-xs text-sky-300">
-          Sunbird Linked
-        </span>
-      </div>
+      </CardHeader>
 
-      {completedSuccess && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3 text-xs text-emerald-300">
-          <Sparkles className="h-4 w-4 text-emerald-400 shrink-0" />
-          <span>
-            <strong>Course Completed:</strong> {completedSuccess} — Competency score increased by +1 level on radar!
-          </span>
-        </div>
-      )}
+      <CardContent>
+        {completedSuccess && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-950/30 p-3 text-xs text-emerald-300">
+            <Sparkles className="h-4 w-4 text-emerald-400 shrink-0" />
+            <span>
+              <strong>Course Completed:</strong> {completedSuccess} — Competency score increased by +1 level on radar!
+            </span>
+          </div>
+        )}
 
-      <ul className="space-y-3">
-        {items.map((rec) => {
-          const isDone = rec.status === "COMPLETED";
-          const isEnrolled = rec.status === "ENROLLED" || rec.status === "IN_PROGRESS";
-          const isSyncing = syncingId === rec.id;
+        <ul className="space-y-3">
+          {items.map((rec) => {
+            const isDone = rec.status === "COMPLETED";
+            const isEnrolled = rec.status === "ENROLLED" || rec.status === "IN_PROGRESS";
+            const isSyncing = syncingId === rec.id;
+            const meta = STATUS_MAP[rec.status];
 
-          return (
-            <li
-              key={rec.id}
-              className={`flex flex-col gap-3 rounded-xl border p-4 transition-all sm:flex-row sm:items-center sm:justify-between ${
-                isDone
-                  ? "border-emerald-500/30 bg-emerald-950/20"
-                  : isEnrolled
-                  ? "border-sky-500/30 bg-sky-950/20"
-                  : "border-white/10 bg-slate-950/40 hover:bg-slate-950/70"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <span className="mt-1 shrink-0">
-                  {isDone ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                  ) : isEnrolled ? (
-                    <Award className="h-5 w-5 text-sky-400" />
-                  ) : (
-                    <CircleDashed className="h-5 w-5 text-slate-500" />
-                  )}
-                </span>
-                <div>
-                  <p className="font-semibold text-sm text-white">{rec.courseTitle}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Target: <span className="text-slate-200">{rec.competencyLabel}</span> · {Math.round(rec.matchScore * 100)}% gap match · {rec.durationHours} hrs
-                  </p>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <span
-                      className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                        isDone
-                          ? "bg-emerald-500/20 text-emerald-300"
-                          : isEnrolled
-                          ? "bg-sky-500/20 text-sky-300"
-                          : "bg-amber-500/15 text-amber-300"
-                      }`}
-                    >
-                      {STATUS_LABEL[rec.status]}
-                    </span>
-                    <span className="text-[11px] text-slate-500">Provider: {rec.provider}</span>
+            return (
+              <li
+                key={rec.id}
+                className="flex flex-col gap-3 rounded-lg border border-slate-800 bg-slate-950/50 p-3.5 transition-colors sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 shrink-0">
+                    {isDone ? (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                    ) : isEnrolled ? (
+                      <Award className="h-5 w-5 text-sky-400" />
+                    ) : (
+                      <CircleDashed className="h-5 w-5 text-slate-500" />
+                    )}
+                  </span>
+                  <div>
+                    <p className="font-semibold text-sm text-white">{rec.courseTitle}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Target: <span className="text-slate-200">{rec.competencyLabel}</span> ·{" "}
+                      <span className="font-mono">{Math.round(rec.matchScore * 100)}%</span> gap match ·{" "}
+                      <span className="font-mono">{rec.durationHours} hrs</span>
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Badge variant={meta.variant} className="text-xs">
+                        {meta.label}
+                      </Badge>
+                      <span className="text-xs text-slate-500">Provider: {rec.provider}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex shrink-0 flex-wrap items-center gap-2 sm:ml-4">
-                {rec.courseUrl && (
-                  <a
-                    href={rec.courseUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/15 bg-slate-850 hover:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors"
-                  >
-                    View on iGOT
-                    <ExternalLink className="h-3 w-3 text-slate-400" />
-                  </a>
-                )}
+                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:ml-4">
+                  {rec.courseUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="h-8 gap-1.5 text-xs"
+                    >
+                      <a
+                        href={rec.courseUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <span>View on iGOT</span>
+                        <ExternalLink className="h-3 w-3 text-slate-400" />
+                      </a>
+                    </Button>
+                  )}
 
-                {!isDone && !isEnrolled && (
-                  <button
-                    type="button"
-                    disabled={isSyncing}
-                    onClick={() => handleSync(rec)}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white transition-all shadow-md disabled:opacity-50"
-                  >
-                    <RefreshCw className={`h-3 w-3 ${isSyncing ? "animate-spin" : ""}`} />
-                    {isSyncing ? "Syncing…" : "Sync to iGOT"}
-                  </button>
-                )}
+                  {!isDone && !isEnrolled && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      disabled={isSyncing}
+                      onClick={() => handleSync(rec)}
+                      className="h-8 gap-1.5 text-xs"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${isSyncing ? "animate-spin" : ""}`} />
+                      <span>{isSyncing ? "Syncing…" : "Sync to iGOT"}</span>
+                    </Button>
+                  )}
 
-                {isEnrolled && !isDone && (
-                  <button
-                    type="button"
-                    onClick={() => handleSimulateComplete(rec)}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-all shadow-md"
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    <span>Simulate Completion</span>
-                  </button>
-                )}
+                  {isEnrolled && !isDone && (
+                    <Button
+                      variant="success"
+                      size="sm"
+                      onClick={() => handleSimulateComplete(rec)}
+                      className="h-8 gap-1.5 text-xs"
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      <span>Simulate Completion</span>
+                    </Button>
+                  )}
 
-                {isDone && (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 px-2 py-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    <span>Gap Closed</span>
-                  </span>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+                  {isDone && (
+                    <Badge variant="success" className="gap-1 py-1 text-xs">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>Gap Closed</span>
+                    </Badge>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }

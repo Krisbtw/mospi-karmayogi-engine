@@ -10,15 +10,10 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { CompetencyItem } from "@/lib/data-service";
 import { cn } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 interface CompetencyRadarCardProps {
@@ -59,45 +54,31 @@ export function CompetencyRadarCard({
     : largestGap;
 
   return (
-    <Card className={cn("border-slate-800 bg-slate-950/60 shadow-sm flex flex-col justify-between", className)}>
+    <Card className={cn("flex h-full flex-col justify-between", className)}>
       <div>
         <CardHeader className="pb-2">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-sky-400 font-mono">
-                  FRAC Baseline Mapping
-                </span>
-                <Badge variant="outline" className="text-xs font-mono text-slate-400 border-slate-800">
-                  Live Radar
-                </Badge>
-              </div>
-              <CardTitle className="mt-1 text-lg text-white">{officerName}</CardTitle>
-              <CardDescription className="mt-0.5 text-xs text-slate-400">
-                {cadreRank} Expected Standard Taxonomy
-              </CardDescription>
-            </div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500">
+            FRAC baseline mapping
+          </p>
+          <CardTitle className="text-lg">{officerName}</CardTitle>
+          <CardDescription>Assessed level against the {cadreRank} expected standard</CardDescription>
 
-            {/* Legend Badges - Dual Blue Palette (Bright Sky + Deep Benchmark Blue) */}
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="gap-1.5 text-xs border-slate-800 bg-slate-900/60 text-slate-300 font-medium">
-                <span className="h-2 w-2 rounded-full bg-sky-400 shadow-sm shadow-sky-500/30" />
-                <span>Assessed Level</span>
-              </Badge>
-              <Badge variant="outline" className="gap-1.5 text-xs border-slate-800 bg-slate-900/60 text-slate-400 font-medium">
-                <span className="h-2 w-2 rounded-full border border-blue-600 border-dashed bg-blue-900/30" />
-                <span>Cadre Benchmark</span>
-              </Badge>
-            </div>
+          <div className="mt-3 flex items-center gap-5 text-xs text-slate-400">
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-amber-400" aria-hidden />
+              Assessed level
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full border border-dashed border-slate-400" aria-hidden />
+              Cadre benchmark
+            </span>
           </div>
         </CardHeader>
 
         <CardContent className="pt-2">
-          {/* Radar Chart Visual with Layered Blue Depth Contours */}
-          <div className="relative h-[320px] w-full">
+          <div className="relative h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={chartData} margin={{ top: 20, right: 35, bottom: 20, left: 35 }}>
-                {/* Subtle dark slate background grid */}
                 <PolarGrid stroke="#1e293b" strokeDasharray="2 2" />
                 <PolarAngleAxis
                   dataKey="label"
@@ -105,7 +86,7 @@ export function CompetencyRadarCard({
                     fill: "#94a3b8",
                     fontSize: 12,
                     fontWeight: 500,
-                    fontFamily: "var(--font-ui, sans-serif)",
+                    fontFamily: "var(--font-geist-sans), sans-serif",
                   }}
                 />
                 <PolarRadiusAxis
@@ -115,31 +96,34 @@ export function CompetencyRadarCard({
                   axisLine={false}
                 />
                 <Tooltip
+                  cursor={false}
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const item = payload[0].payload as CompetencyItem & { gap: number };
                       return (
-                        <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 shadow-xl text-xs font-mono">
+                        <div className="rounded-md border border-slate-700 bg-slate-900 p-3 font-mono text-xs shadow-lg">
                           <p className="font-semibold text-white">{item.label}</p>
-                          <p className="text-xs text-slate-400">{item.fracCode}</p>
-                          <div className="mt-2 space-y-1">
-                            <div className="flex justify-between gap-4 text-sky-400">
-                              <span>Current Proficiency:</span>
-                              <span className="font-bold">Lvl {item.current} / {PROFICIENCY_MAX}</span>
+                          <p className="text-slate-500">{item.fracCode}</p>
+                          <div className="mt-2 flex flex-col gap-1">
+                            <div className="flex justify-between gap-4 text-amber-300">
+                              <span>Assessed</span>
+                              <span className="font-semibold">
+                                {item.current} / {PROFICIENCY_MAX}
+                              </span>
                             </div>
-                            <div className="flex justify-between gap-4 text-blue-300">
-                              <span>Cadre Target:</span>
-                              <span className="font-bold">Lvl {item.target} / {PROFICIENCY_MAX}</span>
+                            <div className="flex justify-between gap-4 text-slate-300">
+                              <span>Benchmark</span>
+                              <span className="font-semibold">
+                                {item.target} / {PROFICIENCY_MAX}
+                              </span>
                             </div>
                             {item.gap > 0 ? (
-                              <div className="flex justify-between gap-4 text-rose-400 pt-1 border-t border-slate-800">
-                                <span>Identified Deficit:</span>
-                                <span className="font-bold">-{item.gap} Level(s)</span>
+                              <div className="flex justify-between gap-4 border-t border-slate-800 pt-1 text-rose-300">
+                                <span>Deficit</span>
+                                <span className="font-semibold">−{item.gap}</span>
                               </div>
                             ) : (
-                              <div className="text-emerald-400 pt-1 border-t border-slate-800">
-                                ✓ Benchmark Met
-                              </div>
+                              <div className="border-t border-slate-800 pt-1 text-emerald-300">Benchmark met</div>
                             )}
                           </div>
                         </div>
@@ -148,32 +132,29 @@ export function CompetencyRadarCard({
                     return null;
                   }}
                 />
-                {/* Cadre Benchmark Target Polygon (Deep Navy / Slate Blue with translucent underlay) */}
                 <Radar
-                  name="Cadre Benchmark"
+                  name="Cadre benchmark"
                   dataKey="target"
-                  stroke="#2563eb"
+                  stroke="#94a3b8"
                   strokeWidth={1.5}
                   strokeDasharray="4 4"
-                  fill="#1e3a8a"
-                  fillOpacity={0.15}
+                  fill="#64748b"
+                  fillOpacity={0.12}
                 />
-                {/* Officer Current Proficiency Polygon (Rich, vibrant Cyan / Sky Blue focal foreground) */}
                 <Radar
-                  name="Current Level"
+                  name="Assessed level"
                   dataKey="current"
-                  stroke="#38bdf8"
+                  stroke="#fbbf24"
                   strokeWidth={2}
-                  fill="#0284c7"
-                  fillOpacity={0.45}
+                  fill="#d97706"
+                  fillOpacity={0.35}
                 />
               </RadarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Competency Pill Selector */}
+          {/* Competency selector */}
           <div className="mt-4 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs font-medium text-slate-400 mr-1">Inspect:</span>
             {chartData.map((item) => {
               const isDeficit = item.gap > 0;
               const isSelected = focused?.fracCode === item.fracCode;
@@ -181,26 +162,18 @@ export function CompetencyRadarCard({
                 <button
                   key={item.fracCode}
                   type="button"
+                  aria-pressed={isSelected}
                   onClick={() => setFocusedCode(item.fracCode)}
                   className={cn(
-                    "inline-flex items-center rounded-md border text-xs px-2.5 py-1 transition-colors font-medium",
+                    "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
                     isSelected
-                      ? "bg-blue-600 text-white border-blue-500 shadow-sm"
-                      : "border-slate-800 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:border-slate-700"
+                      ? "border-amber-500/50 bg-amber-500/15 text-amber-200"
+                      : "border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200"
                   )}
                 >
                   <span>{item.label}</span>
                   {isDeficit && (
-                    <span
-                      className={cn(
-                        "ml-1.5 font-mono text-[11px] px-1.5 py-0.5 rounded border",
-                        isSelected
-                          ? "bg-blue-700/90 text-white border-blue-400/40"
-                          : "bg-rose-950/50 text-rose-300 border-rose-800/40"
-                      )}
-                    >
-                      -{item.gap}
-                    </span>
+                    <span className="font-mono text-[11px] text-rose-300">−{item.gap}</span>
                   )}
                 </button>
               );
@@ -209,45 +182,40 @@ export function CompetencyRadarCard({
         </CardContent>
       </div>
 
-      {/* Deficit Warning Banner */}
+      {/* Focused competency detail */}
       {focused && (
-        <div className="p-5 pt-0">
-          <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  {focused.gap > 0 ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-950/30 px-2.5 py-0.5 text-xs font-medium text-rose-300 border border-rose-800/40">
-                      <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
-                      <span>Cadre Deficit: {focused.gap} Level(s) Gap</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-950/30 px-2.5 py-0.5 text-xs font-medium text-emerald-300 border border-emerald-800/40">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                      <span>Cadre Requirement Fulfilled</span>
-                    </span>
-                  )}
-                  <span className="text-xs font-mono text-slate-400">{focused.fracCode}</span>
-                </div>
-                <h4 className="text-sm font-semibold text-white mt-1.5">{focused.label}</h4>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Current Level: <strong className="text-sky-400">Lvl {focused.current}</strong> of{" "}
-                  <strong className="text-slate-200 font-semibold">Lvl {focused.target}</strong> expected for {cadreRank}
-                </p>
-              </div>
-
-              {focused.gap > 0 && onTakeQuizForCompetency && (
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => onTakeQuizForCompetency(focused.fracCode)}
-                  className="gap-1.5 shrink-0 bg-blue-600 hover:bg-blue-500 text-white shadow-sm"
-                >
-                  <span>Take Diagnostic Quiz</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              )}
+        <div className="border-t border-slate-800 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                {focused.fracCode}
+                {focused.gap > 0 ? (
+                  <span className="text-rose-300"> · deficit of {focused.gap} level{focused.gap === 1 ? "" : "s"}</span>
+                ) : (
+                  <span className="text-emerald-300"> · requirement met</span>
+                )}
+              </p>
+              <h4 className="mt-1.5 text-base font-semibold tracking-tight text-white text-balance">
+                {focused.label}
+              </h4>
+              <p className="mt-1 text-xs text-slate-400">
+                Assessed at <strong className="font-semibold text-amber-300">level {focused.current}</strong>; the{" "}
+                {cadreRank} benchmark is{" "}
+                <strong className="font-semibold text-slate-200">level {focused.target}</strong>.
+              </p>
             </div>
+
+            {focused.gap > 0 && onTakeQuizForCompetency && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => onTakeQuizForCompetency(focused.fracCode)}
+                className="shrink-0 gap-1.5"
+              >
+                <span>Take diagnostic quiz</span>
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </Button>
+            )}
           </div>
         </div>
       )}

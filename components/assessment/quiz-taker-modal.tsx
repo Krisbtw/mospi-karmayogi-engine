@@ -1,20 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  X,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Award,
-  BookOpen,
-  ArrowRight,
-  ArrowLeft,
-  Quote,
-  TrendingUp,
-  RotateCcw,
-} from "lucide-react";
+import { X, Clock, Check, ArrowRight, ArrowLeft, BookOpen } from "lucide-react";
 import { AssessmentQuestion } from "@/lib/data-service";
+import { cn } from "@/lib/utils";
 
 interface QuizTakerModalProps {
   isOpen: boolean;
@@ -30,6 +19,19 @@ interface QuizTakerModalProps {
   }) => void;
 }
 
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900";
+
+const primaryBtn = cn(
+  "inline-flex items-center gap-2 rounded-md bg-amber-500 px-5 py-2 text-xs font-semibold text-slate-950 shadow-sm transition-[background-color,transform,box-shadow] duration-200 hover:-translate-y-px hover:bg-amber-400 hover:shadow-md active:translate-y-0 active:scale-[0.98] active:bg-amber-600 disabled:pointer-events-none disabled:opacity-50",
+  focusRing
+);
+
+const ghostBtn = cn(
+  "inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium text-slate-300 transition-colors duration-200 hover:bg-slate-800 hover:text-white active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
+  focusRing
+);
+
 export function QuizTakerModal({
   isOpen,
   onClose,
@@ -43,7 +45,6 @@ export function QuizTakerModal({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(questions.length * 90);
 
-  // Timer countdown
   useEffect(() => {
     if (!isOpen || isSubmitted) return;
     const interval = setInterval(() => {
@@ -80,10 +81,7 @@ export function QuizTakerModal({
     if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
   };
 
-  // Calculate results
-  const correctCount = questions.filter(
-    (q) => selectedAnswers[q.id] === q.correctChoice
-  ).length;
+  const correctCount = questions.filter((q) => selectedAnswers[q.id] === q.correctChoice).length;
   const scorePercent = Math.round((correctCount / totalQ) * 100);
   const passed = scorePercent >= 60;
   const earnedProficiencyDelta = passed ? 1 : 0;
@@ -109,246 +107,232 @@ export function QuizTakerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md">
-      <div className="relative flex flex-col w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl border border-white/15 bg-slate-900 text-slate-100 shadow-2xl">
-        {/* Header bar */}
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-slate-950/60">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-white">
-                MoSPI FRAC Diagnostic Assessment
-              </span>
-              <span className="rounded bg-sky-500/20 border border-sky-500/30 px-2 py-0.5 text-[10px] font-medium text-sky-300">
-                {cadreRank} Baseline
-              </span>
-            </div>
-            <p className="text-xs text-slate-400">
-              Assessing: {officerName} · Competency: {currentQ.competencyLabel}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quiz-taker-title"
+    >
+      <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900 text-slate-100 shadow-2xl">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 border-b border-slate-800 bg-slate-950/60 px-6 py-5">
+          <div className="flex flex-col gap-1">
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500">
+              {cadreRank} baseline · FRAC diagnostic
             </p>
+            <h2 id="quiz-taker-title" className="text-lg font-semibold tracking-tight text-white">
+              {currentQ.competencyLabel}
+            </h2>
+            <p className="text-xs text-slate-400">Assessing {officerName}</p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {!isSubmitted && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1 font-mono text-xs font-semibold text-amber-300">
-                <Clock className="h-3.5 w-3.5" />
+              <div
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-xs font-semibold tabular-nums transition-colors duration-300",
+                  timeLeftSeconds <= 30
+                    ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                    : "border-slate-700 bg-slate-900 text-slate-300"
+                )}
+                aria-live="polite"
+              >
+                <Clock className="h-3.5 w-3.5" aria-hidden />
                 <span>{formatTime(timeLeftSeconds)}</span>
               </div>
             )}
             <button
+              type="button"
               onClick={onClose}
-              className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+              aria-label="Close"
+              className={cn(
+                "rounded-md p-1.5 text-slate-400 transition-colors duration-200 hover:bg-slate-800 hover:text-white active:scale-95",
+                focusRing
+              )}
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" aria-hidden />
             </button>
           </div>
         </div>
 
-        {/* Content area */}
+        {/* Body */}
         <div className="flex-1 overflow-y-auto p-6">
           {!isSubmitted ? (
-            <div className="space-y-6">
-              {/* Question metadata & stepper */}
-              <div className="flex items-center justify-between text-xs text-slate-400 border-b border-white/10 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-white">
+            <div className="flex flex-col gap-6">
+              {/* Progress */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span className="font-medium text-white">
                     Question {currentIndex + 1} of {totalQ}
                   </span>
-                  <span className="rounded bg-emerald-500/15 text-emerald-300 px-2 py-0.5 text-[10px]">
-                    Bloom: {currentQ.bloomLevel}
-                  </span>
-                  <span className="rounded bg-slate-800 text-slate-300 px-2 py-0.5 text-[10px]">
-                    Difficulty: Lvl {currentQ.difficulty}/5
+                  <span className="flex items-center gap-3 font-mono text-[11px]">
+                    <span>Bloom · {currentQ.bloomLevel.toLowerCase()}</span>
+                    <span>Difficulty · {currentQ.difficulty}/5</span>
+                    <span>Answered · {Object.keys(selectedAnswers).length}/{totalQ}</span>
                   </span>
                 </div>
-                <span>Answered: {Object.keys(selectedAnswers).length}/{totalQ}</span>
+                <div className="flex gap-1">
+                  {questions.map((q, i) => (
+                    <span
+                      key={q.id}
+                      className={cn(
+                        "h-1 flex-1 rounded-full transition-colors duration-300",
+                        i === currentIndex
+                          ? "bg-amber-400"
+                          : selectedAnswers[q.id]
+                          ? "bg-slate-500"
+                          : "bg-slate-800"
+                      )}
+                    />
+                  ))}
+                </div>
               </div>
 
               {/* Stem */}
-              <div className="rounded-xl border border-white/10 bg-slate-950/40 p-5">
-                <p className="text-base font-medium leading-relaxed text-white">
-                  {currentQ.stem}
-                </p>
-              </div>
+              <p className="text-lg font-medium leading-relaxed tracking-tight text-white text-pretty">
+                {currentQ.stem}
+              </p>
 
               {/* Choices */}
-              <div className="space-y-3">
+              <div className="flex flex-col gap-2" role="radiogroup" aria-label="Answer choices">
                 {currentQ.choices.map((choice) => {
                   const isSelected = selectedAnswers[currentQ.id] === choice.id;
                   return (
                     <button
                       key={choice.id}
                       type="button"
+                      role="radio"
+                      aria-checked={isSelected}
                       onClick={() => handleSelectAnswer(choice.id)}
-                      className={`w-full flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
+                      className={cn(
+                        "flex w-full items-start gap-3 rounded-md border p-4 text-left transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.995]",
+                        focusRing,
                         isSelected
-                          ? "border-sky-500 bg-sky-500/15 text-white ring-1 ring-sky-500"
-                          : "border-white/10 bg-slate-950/50 hover:bg-slate-800/60 text-slate-300"
-                      }`}
+                          ? "border-amber-500/50 bg-amber-500/10 text-white"
+                          : "border-slate-800 bg-slate-950/40 text-slate-300 hover:border-slate-600 hover:bg-slate-800/60 hover:text-white"
+                      )}
                     >
                       <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md font-semibold text-xs transition-colors ${
-                          isSelected
-                            ? "bg-sky-500 text-white"
-                            : "bg-slate-800 text-slate-400"
-                        }`}
+                        className={cn(
+                          "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm font-mono text-xs font-semibold transition-colors duration-200",
+                          isSelected ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-400"
+                        )}
                       >
                         {choice.id}
                       </span>
-                      <span className="text-sm leading-snug">{choice.text}</span>
+                      <span className="text-sm leading-snug text-pretty">{choice.text}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
           ) : (
-            /* Results Review Screen */
-            <div className="space-y-6">
-              {/* Score banner */}
-              <div
-                className={`rounded-2xl border p-6 text-center ${
-                  passed
-                    ? "border-emerald-500/40 bg-emerald-950/30"
-                    : "border-rose-500/40 bg-rose-950/30"
-                }`}
-              >
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/10 mb-2">
-                  {passed ? (
-                    <Award className="h-6 w-6 text-emerald-400" />
-                  ) : (
-                    <XCircle className="h-6 w-6 text-rose-400" />
-                  )}
+            /* Results */
+            <div className="flex flex-col gap-8">
+              <div className="grid grid-cols-1 gap-6 border-b border-slate-800 pb-8 sm:grid-cols-12 sm:items-end">
+                <div className="sm:col-span-5">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500">Score</p>
+                  <p className="mt-2 text-6xl font-semibold leading-none tracking-tighter text-white">
+                    {scorePercent}
+                    <span className="text-3xl text-slate-500">%</span>
+                  </p>
+                  <p className="mt-2 text-sm text-slate-400">
+                    {correctCount} of {totalQ} correct
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold text-white">
-                  {passed ? "Assessment Passed!" : "Competency Gap Identified"}
-                </h3>
-                <p className="mt-1 text-sm text-slate-300">
-                  You scored <strong className="text-white">{scorePercent}%</strong> ({correctCount}/{totalQ} correct).
-                </p>
-
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/80 px-4 py-1.5 text-xs">
-                  {passed ? (
-                    <>
-                      <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
-                      <span className="text-emerald-300 font-medium">
-                        Proficiency updated: Target baseline achieved for {cadreRank}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <TrendingUp className="h-3.5 w-3.5 text-amber-400" />
-                      <span className="text-amber-300 font-medium">
-                        Flagged as Active Skill Gap → Recommended on iGOT Karmayogi
-                      </span>
-                    </>
-                  )}
+                <div className="sm:col-span-7">
+                  <h3
+                    className={cn(
+                      "text-xl font-semibold tracking-tight text-balance",
+                      passed ? "text-emerald-300" : "text-amber-300"
+                    )}
+                  >
+                    {passed ? "Benchmark reached" : "Competency gap confirmed"}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-400 text-pretty">
+                    {passed
+                      ? `Proficiency will move up one level towards the ${cadreRank} baseline when you close this panel.`
+                      : "This competency stays flagged as an open gap and the matching iGOT Karmayogi course remains recommended."}
+                  </p>
                 </div>
               </div>
 
-              {/* Detailed Question Review with Grounded Citations */}
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-                  Question Review & Grounded Handbook Citations
+              <div className="flex flex-col gap-4">
+                <h4 className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">
+                  Question review with handbook citations
                 </h4>
-                <div className="space-y-4">
+                <ol className="flex flex-col divide-y divide-slate-800 rounded-md border border-slate-800">
                   {questions.map((q, idx) => {
                     const officerChoice = selectedAnswers[q.id];
                     const isCorrect = officerChoice === q.correctChoice;
 
                     return (
-                      <div
-                        key={q.id}
-                        className="rounded-xl border border-white/10 bg-slate-950/50 p-4 space-y-3"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-xs text-white">Q{idx + 1}.</span>
-                            <span className="text-xs text-slate-300 font-medium">{q.stem}</span>
-                          </div>
-                          {isCorrect ? (
-                            <span className="flex items-center gap-1 rounded bg-emerald-500/15 text-emerald-300 px-2 py-0.5 text-[11px] font-medium shrink-0">
-                              <CheckCircle2 className="h-3 w-3" /> Correct
+                      <li key={q.id} className="flex flex-col gap-3 p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <p className="text-sm font-medium leading-snug text-white text-pretty">
+                            <span className="mr-2 font-mono text-xs text-slate-500">
+                              {String(idx + 1).padStart(2, "0")}
                             </span>
-                          ) : (
-                            <span className="flex items-center gap-1 rounded bg-rose-500/15 text-rose-300 px-2 py-0.5 text-[11px] font-medium shrink-0">
-                              <XCircle className="h-3 w-3" /> Incorrect (Chose {officerChoice || "None"})
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Rationale */}
-                        <div className="rounded-lg bg-slate-900 p-3 text-xs leading-relaxed text-slate-300">
-                          <strong className="text-white font-medium">Correct Answer: {q.correctChoice} — </strong>
-                          {q.rationale}
-                        </div>
-
-                        {/* Grounded Citation Box */}
-                        <div className="rounded-lg border border-sky-500/20 bg-sky-950/20 p-3 text-xs text-slate-300 space-y-1">
-                          <div className="flex items-center gap-1.5 text-sky-400 font-medium text-[11px]">
-                            <BookOpen className="h-3.5 w-3.5" />
-                            <span>Grounded Source: {q.sourceDocument}</span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 italic">
-                            Section: {q.sourceCitation}
+                            {q.stem}
                           </p>
-                          <div className="flex items-start gap-1.5 text-[11px] text-slate-300 pt-1 border-t border-sky-500/10">
-                            <Quote className="h-3 w-3 text-sky-400 shrink-0 mt-0.5" />
-                            <span>&quot;{q.sourceSnippet}&quot;</span>
-                          </div>
+                          <span
+                            className={cn(
+                              "shrink-0 font-mono text-[11px] uppercase tracking-[0.12em]",
+                              isCorrect ? "text-emerald-300" : "text-rose-300"
+                            )}
+                          >
+                            {isCorrect ? "Correct" : `Incorrect · chose ${officerChoice || "none"}`}
+                          </span>
                         </div>
-                      </div>
+
+                        <p className="text-xs leading-relaxed text-slate-300 text-pretty">
+                          <strong className="font-medium text-white">Answer {q.correctChoice}. </strong>
+                          {q.rationale}
+                        </p>
+
+                        <blockquote className="border-l-2 border-amber-500/40 pl-3 text-xs leading-relaxed text-slate-400">
+                          <p className="flex items-center gap-1.5 font-medium text-slate-300">
+                            <BookOpen className="h-3.5 w-3.5 text-amber-400" aria-hidden />
+                            {q.sourceDocument}
+                            <span className="font-normal text-slate-500">· {q.sourceCitation}</span>
+                          </p>
+                          <p className="mt-1 italic">&ldquo;{q.sourceSnippet}&rdquo;</p>
+                        </blockquote>
+                      </li>
                     );
                   })}
-                </div>
+                </ol>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer controls */}
-        <div className="flex items-center justify-between border-t border-white/10 bg-slate-950/60 px-6 py-4">
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-slate-800 bg-slate-950/60 px-6 py-4">
           {!isSubmitted ? (
             <>
-              <button
-                type="button"
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-300 hover:bg-white/10 disabled:opacity-40 transition-colors"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
+              <button type="button" onClick={handlePrev} disabled={currentIndex === 0} className={ghostBtn}>
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
                 <span>Previous</span>
               </button>
 
-              <div className="flex items-center gap-2">
-                {currentIndex === totalQ - 1 ? (
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-xs font-semibold text-white shadow-md transition-all"
-                  >
-                    <span>Submit Assessment</span>
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all"
-                  >
-                    <span>Next</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
+              {currentIndex === totalQ - 1 ? (
+                <button type="button" onClick={handleSubmit} className={primaryBtn}>
+                  <span>Submit assessment</span>
+                  <Check className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              ) : (
+                <button type="button" onClick={handleNext} className={primaryBtn}>
+                  <span>Next</span>
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              )}
             </>
           ) : (
-            <div className="w-full flex items-center justify-end">
-              <button
-                type="button"
-                onClick={handleFinishAndSave}
-                className="inline-flex items-center gap-2 rounded-lg bg-sky-600 hover:bg-sky-500 px-6 py-2.5 text-xs font-semibold text-white shadow-lg transition-all"
-              >
-                <span>Update Competency Profile & Close</span>
-                <ArrowRight className="h-4 w-4" />
+            <div className="flex w-full items-center justify-end">
+              <button type="button" onClick={handleFinishAndSave} className={primaryBtn}>
+                <span>Update competency profile and close</span>
+                <ArrowRight className="h-4 w-4" aria-hidden />
               </button>
             </div>
           )}

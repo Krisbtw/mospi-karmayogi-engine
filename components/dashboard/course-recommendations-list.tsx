@@ -2,18 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  ExternalLink,
-  RefreshCw,
-  CheckCircle2,
-  CircleDashed,
-  Award,
-  Sparkles,
-} from "lucide-react";
+import { ExternalLink, RefreshCw, Check } from "lucide-react";
 import { IgotCourse } from "@/lib/data-service";
 import { cn } from "@/lib/utils";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface CourseRecommendationsListProps {
@@ -24,30 +16,11 @@ interface CourseRecommendationsListProps {
   className?: string;
 }
 
-const STATUS_CONFIG: Record<
-  IgotCourse["status"],
-  { label: string; variant: "warning" | "info" | "secondary" | "success"; icon: typeof CircleDashed }
-> = {
-  RECOMMENDED: {
-    label: "Recommended",
-    variant: "warning",
-    icon: CircleDashed,
-  },
-  ENROLLED: {
-    label: "Enrolled",
-    variant: "info",
-    icon: Award,
-  },
-  IN_PROGRESS: {
-    label: "In Progress",
-    variant: "secondary",
-    icon: RefreshCw,
-  },
-  COMPLETED: {
-    label: "Certified",
-    variant: "success",
-    icon: CheckCircle2,
-  },
+const STATUS_LABEL: Record<IgotCourse["status"], string> = {
+  RECOMMENDED: "Recommended",
+  ENROLLED: "Enrolled",
+  IN_PROGRESS: "In progress",
+  COMPLETED: "Certified",
 };
 
 export function CourseRecommendationsList({
@@ -115,149 +88,133 @@ export function CourseRecommendationsList({
   }
 
   return (
-    <Card className={cn("border-slate-800/80 bg-slate-900/90 shadow-sm flex flex-col justify-between", className)}>
-      <div>
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-base font-semibold text-white">
-                iGOT Karmayogi Bharat Courses
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-400 mt-0.5">
-                Targeted capacity building courses matched to diagnosed cadre competency deficits
-              </CardDescription>
+    <Card className={cn("flex h-full flex-col", className)}>
+      <CardHeader className="flex-row items-start justify-between gap-4 pb-4">
+        <div className="flex flex-col gap-1.5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500">
+            Sunbird registry
+          </p>
+          <CardTitle className="text-lg">iGOT Karmayogi courses</CardTitle>
+          <CardDescription>
+            Matched to the diagnosed deficits above. Enrolment syncs to the officer&apos;s iGOT record.
+          </CardDescription>
+        </div>
+        <span className="shrink-0 font-mono text-xs text-slate-500">
+          {items.filter((i) => i.status === "COMPLETED").length}/{items.length} certified
+        </span>
+      </CardHeader>
+
+      <AnimatePresence>
+        {completedSuccess && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden px-6"
+          >
+            <div className="mb-4 flex items-start gap-2.5 rounded-md border border-emerald-500/25 bg-emerald-500/10 p-3 text-xs text-emerald-200">
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
+              <span className="text-pretty">
+                Certificate recorded for &ldquo;{completedSuccess}&rdquo;. Proficiency moved up one level on the radar.
+              </span>
             </div>
-            <Badge variant="outline" className="font-mono text-xs text-slate-400">
-              Sunbird Registry
-            </Badge>
-          </div>
-        </CardHeader>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        <CardContent>
-          {/* Completion Success Toast */}
-          <AnimatePresence>
-            {completedSuccess && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="mb-4 flex items-center gap-2.5 rounded-md border border-emerald-500/30 bg-emerald-950/30 p-3 text-xs text-emerald-300 font-mono"
+      {/* Divided list instead of stacked bordered boxes */}
+      <ol className="flex flex-col divide-y divide-slate-800 border-t border-slate-800">
+        {items.map((rec, idx) => {
+          const isDone = rec.status === "COMPLETED";
+          const isEnrolled = rec.status === "ENROLLED" || rec.status === "IN_PROGRESS";
+          const isSyncing = syncingId === rec.id;
+
+          return (
+            <li
+              key={rec.id}
+              className={cn(
+                "group grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 px-6 py-5 transition-colors duration-200 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center",
+                !isDone && "hover:bg-slate-800/40"
+              )}
+            >
+              <span
+                className={cn(
+                  "mt-0.5 font-mono text-xs tabular-nums sm:mt-0",
+                  isDone ? "text-emerald-400" : isEnrolled ? "text-amber-400" : "text-slate-500"
+                )}
               >
-                <Sparkles className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span>
-                  <strong>Certification Recorded:</strong> &quot;{completedSuccess}&quot; —
-                  Proficiency updated on Live Radar (+1 Level).
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                {String(idx + 1).padStart(2, "0")}
+              </span>
 
-          {/* Course List */}
-          <div className="space-y-2.5">
-            {items.map((rec) => {
-              const isDone = rec.status === "COMPLETED";
-              const isEnrolled = rec.status === "ENROLLED" || rec.status === "IN_PROGRESS";
-              const isSyncing = syncingId === rec.id;
-              const statusMeta = STATUS_CONFIG[rec.status];
-              const StatusIcon = statusMeta.icon;
-
-              return (
-                <div
-                  key={rec.id}
+              <div className="min-w-0">
+                <h4
                   className={cn(
-                    "rounded-md border p-3 transition-colors flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between",
-                    isDone
-                      ? "border-emerald-500/30 bg-emerald-950/15"
-                      : isEnrolled
-                      ? "border-sky-500/30 bg-sky-950/15"
-                      : "border-slate-800 bg-slate-950/60 hover:bg-slate-950/90 hover:border-slate-700"
+                    "text-sm font-medium leading-snug text-balance",
+                    isDone ? "text-slate-400 line-through decoration-slate-600" : "text-white"
                   )}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 shrink-0">
-                      <StatusIcon
-                        className={cn(
-                          "h-4 w-4",
-                          isDone
-                            ? "text-emerald-400"
-                            : isEnrolled
-                            ? "text-sky-400"
-                            : "text-slate-500"
-                        )}
-                      />
-                    </div>
+                  {rec.courseTitle}
+                </h4>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400 text-pretty">
+                  Resolves <span className="font-medium text-slate-200">{rec.competencyLabel}</span>
+                  <span className="text-slate-600"> · </span>
+                  <span className="font-mono">{Math.round(rec.matchScore * 100)}% match</span>
+                  <span className="text-slate-600"> · </span>
+                  <span className="font-mono">{rec.durationHours} h</span>
+                  <span className="text-slate-600"> · </span>
+                  {rec.provider}
+                </p>
+              </div>
 
-                    <div>
-                      <h4 className="font-medium text-sm text-white">
-                        {rec.courseTitle}
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Resolves <span className="text-slate-200 font-medium">{rec.competencyLabel}</span> deficit ·{" "}
-                        <span className="font-mono text-slate-300">{Math.round(rec.matchScore * 100)}% match</span> ·{" "}
-                        <span className="font-mono">{rec.durationHours} hrs</span> · {rec.provider}
-                      </p>
-                    </div>
-                  </div>
+              {/* Actions — bottom/right aligned as a unit */}
+              <div className="col-span-2 flex items-center justify-end gap-2 sm:col-span-1">
+                <span
+                  className={cn(
+                    "font-mono text-[11px] uppercase tracking-[0.12em]",
+                    isDone ? "text-emerald-400" : isEnrolled ? "text-amber-400" : "text-slate-500"
+                  )}
+                >
+                  {STATUS_LABEL[rec.status]}
+                </span>
 
-                  {/* Actions & single status chip */}
-                  <div className="flex shrink-0 flex-wrap items-center gap-2 sm:ml-4 self-end sm:self-center">
-                    {rec.courseUrl && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                        className="h-7 px-2 text-xs text-slate-400 hover:text-white"
-                      >
-                        <a
-                          href={rec.courseUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1"
-                        >
-                          <span>iGOT</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </Button>
-                    )}
+                {rec.courseUrl && (
+                  <Button variant="ghost" size="icon-sm" asChild className="h-7 w-7 text-slate-500 hover:text-white">
+                    <a href={rec.courseUrl} target="_blank" rel="noreferrer" aria-label={`Open ${rec.courseTitle} on iGOT`}>
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                    </a>
+                  </Button>
+                )}
 
-                    {!isDone && !isEnrolled && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        disabled={isSyncing}
-                        onClick={() => handleSync(rec)}
-                        className="h-7 px-2.5 text-xs gap-1.5"
-                      >
-                        <RefreshCw className={cn("h-3 w-3", isSyncing && "animate-spin")} />
-                        <span>{isSyncing ? "Enrolling…" : "Enroll via Sunbird"}</span>
-                      </Button>
-                    )}
+                {!isDone && !isEnrolled && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isSyncing}
+                    onClick={() => handleSync(rec)}
+                    className="h-7 gap-1.5 px-2.5 text-xs"
+                  >
+                    <RefreshCw className={cn("h-3 w-3", isSyncing && "animate-spin")} aria-hidden />
+                    <span>{isSyncing ? "Enrolling…" : "Enrol"}</span>
+                  </Button>
+                )}
 
-                    {isEnrolled && !isDone && (
-                      <Button
-                        variant="success"
-                        size="sm"
-                        onClick={() => handleSimulateComplete(rec)}
-                        className="h-7 px-2.5 text-xs gap-1.5"
-                      >
-                        <CheckCircle2 className="h-3 w-3" />
-                        <span>Simulate Completion</span>
-                      </Button>
-                    )}
-
-                    {isDone && (
-                      <Badge variant="success" className="gap-1 text-xs">
-                        <CheckCircle2 className="h-3 w-3" />
-                        <span>Certified</span>
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </div>
+                {isEnrolled && !isDone && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleSimulateComplete(rec)}
+                    className="h-7 gap-1.5 px-2.5 text-xs"
+                  >
+                    <Check className="h-3 w-3" aria-hidden />
+                    <span>Mark complete</span>
+                  </Button>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </Card>
   );
 }

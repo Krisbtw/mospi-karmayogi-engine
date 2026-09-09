@@ -159,7 +159,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-sky-500/30">
+    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-amber-400/30">
       <Navbar />
 
       <main>
@@ -167,14 +167,10 @@ export default function HomePage() {
         <HeroSection onOpenDocUpload={() => setIsDocUploadOpen(true)} />
 
         {/* Dashboard Section */}
-        <section id="dashboard" className="mx-auto max-w-7xl px-6 py-12 scroll-mt-16">
-          {/* Dynamic 21st.dev Metric Strip */}
-          <MetricStrip
-            officer={currentOfficer}
-            competencies={currentCompetencies}
-            completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length}
-          />
-
+        <section
+          id="dashboard"
+          className="mx-auto flex max-w-[1320px] flex-col gap-14 px-6 py-20 scroll-mt-16 lg:px-10 lg:py-24"
+        >
           {/* Officer Cadre Bar & Switcher */}
           <CadreProfileBar
             currentOfficer={currentOfficer}
@@ -186,12 +182,19 @@ export default function HomePage() {
             onOpenDocUpload={() => setIsDocUploadOpen(true)}
           />
 
+          {/* Metric ledger */}
+          <MetricStrip
+            officer={currentOfficer}
+            competencies={currentCompetencies}
+            completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length}
+          />
+
           {/* Conditional View: Cadre Officer vs Training Division Admin */}
           {activeView === "OFFICER" ? (
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-                {/* Left Column: Dynamic Competency Radar Card */}
-                <div className="lg:col-span-6">
+            <div className="flex flex-col gap-14">
+              {/* Asymmetric split: radar takes 5/12, course list takes 7/12 */}
+              <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
+                <div className="lg:col-span-5">
                   <CompetencyRadarCard
                     officerName={currentOfficer.name}
                     cadreRank={currentOfficer.cadreRank}
@@ -200,8 +203,7 @@ export default function HomePage() {
                   />
                 </div>
 
-                {/* Right Column: Animated iGOT Karmayogi Course Recommendations */}
-                <div className="lg:col-span-6">
+                <div className="lg:col-span-7">
                   <CourseRecommendationsList
                     userId={currentOfficer.id}
                     recommendations={recommendations}
@@ -211,11 +213,7 @@ export default function HomePage() {
               </div>
 
               {/* Statistical Guideline RAG Ingestion Dropzone */}
-              <div>
-                <DocumentDropzone
-                  onDocumentAdded={handleDocumentAdded}
-                />
-              </div>
+              <DocumentDropzone onDocumentAdded={handleDocumentAdded} />
             </div>
           ) : (
             /* Training Division Admin Dashboard */

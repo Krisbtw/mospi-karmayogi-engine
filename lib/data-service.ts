@@ -70,7 +70,7 @@ export interface AssessmentQuestion {
 export const DEMO_OFFICERS: Officer[] = [
   {
     id: "user_jso_pune",
-    name: "Officer A. Sharma",
+    name: "Anjali Sharma",
     email: "a.sharma@mospi.gov.in",
     designation: "Junior Statistical Officer",
     cadreRank: "JSO",
@@ -81,7 +81,7 @@ export const DEMO_OFFICERS: Officer[] = [
   },
   {
     id: "user_so_delhi",
-    name: "Officer R. Verma",
+    name: "Rohit Verma",
     email: "r.verma@mospi.gov.in",
     designation: "Senior Statistical Officer",
     cadreRank: "SO",
@@ -92,7 +92,7 @@ export const DEMO_OFFICERS: Officer[] = [
   },
   {
     id: "user_dd_kolkata",
-    name: "Dr. S. Iyer",
+    name: "Dr. Sunita Iyer",
     email: "s.iyer@mospi.gov.in",
     designation: "Deputy Director",
     cadreRank: "DD",
@@ -594,8 +594,8 @@ export const SAMPLE_QUESTIONS_DATABASE: Record<string, AssessmentQuestion[]> = {
 export const TD_CADRE_HEATMAP_DATA = [
   {
     division: "FOD (Field Operations)",
-    totalOfficers: 420,
-    cadreBreakdown: "280 JSO, 110 SO, 30 DD",
+    totalOfficers: 418,
+    cadreBreakdown: "279 JSO · 109 SO · 30 DD",
     competencies: [
       { code: "FN-STAT-014", label: "Survey Sampling Design", gapPercent: 68 },
       { code: "FN-STAT-033", label: "R/Python for Survey Data", gapPercent: 74 },
@@ -605,8 +605,8 @@ export const TD_CADRE_HEATMAP_DATA = [
   },
   {
     division: "NAD (National Accounts)",
-    totalOfficers: 180,
-    cadreBreakdown: "45 JSO, 85 SO, 50 DD",
+    totalOfficers: 176,
+    cadreBreakdown: "44 JSO · 83 SO · 49 DD",
     competencies: [
       { code: "FN-STAT-021", label: "National Income Accounting", gapPercent: 58 },
       { code: "FN-STAT-033", label: "R/Python for Survey Data", gapPercent: 52 },
@@ -616,8 +616,8 @@ export const TD_CADRE_HEATMAP_DATA = [
   },
   {
     division: "ESD (Economic Statistics)",
-    totalOfficers: 210,
-    cadreBreakdown: "90 JSO, 80 SO, 40 DD",
+    totalOfficers: 213,
+    cadreBreakdown: "91 JSO · 81 SO · 41 DD",
     competencies: [
       { code: "FN-STAT-042", label: "Industrial Indexing (IIP/ASI)", gapPercent: 64 },
       { code: "DM-PRICE-002", label: "Price Statistics (CPI)", gapPercent: 61 },
@@ -627,8 +627,8 @@ export const TD_CADRE_HEATMAP_DATA = [
   },
   {
     division: "DQAD (Data Quality Assurance)",
-    totalOfficers: 140,
-    cadreBreakdown: "50 JSO, 60 SO, 30 DD",
+    totalOfficers: 141,
+    cadreBreakdown: "50 JSO · 60 SO · 31 DD",
     competencies: [
       { code: "FN-STAT-033", label: "R/Python for Survey Data", gapPercent: 42 },
       { code: "FN-STAT-014", label: "Survey Sampling Design", gapPercent: 35 },

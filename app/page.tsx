@@ -12,6 +12,7 @@ import { TdAdminDashboard } from "@/components/dashboard/td-admin-dashboard";
 import { DocumentUploadModal } from "@/components/documents/document-upload-modal";
 import { QuizGeneratorModal } from "@/components/assessment/quiz-generator-modal";
 import { QuizTakerModal } from "@/components/assessment/quiz-taker-modal";
+import { DashboardBackground } from "@/components/ui/dashboard-background";
 import {
   Officer,
   DEMO_OFFICERS,
@@ -166,60 +167,62 @@ export default function HomePage() {
         {/* Landing Hero with ambient WebGL shader background */}
         <HeroSection onOpenDocUpload={() => setIsDocUploadOpen(true)} />
 
-        {/* Dashboard Section */}
-        <section
-          id="dashboard"
-          className="mx-auto flex max-w-[1320px] flex-col gap-14 px-6 py-20 scroll-mt-16 lg:px-10 lg:py-24"
-        >
-          {/* Officer Cadre Bar & Switcher */}
-          <CadreProfileBar
-            currentOfficer={currentOfficer}
-            onSelectOfficer={handleSelectOfficer}
-            competencies={currentCompetencies}
-            activeView={activeView}
-            onChangeView={setActiveView}
-            onOpenQuizGenerator={() => setIsQuizGenOpen(true)}
-            onOpenDocUpload={() => setIsDocUploadOpen(true)}
-          />
+        {/* Dashboard Section with 21st.dev Spotlight & Faded Statistical Grid */}
+        <DashboardBackground>
+          <section
+            id="dashboard"
+            className="mx-auto flex max-w-[1320px] flex-col gap-14 px-6 py-20 scroll-mt-16 lg:px-10 lg:py-24"
+          >
+            {/* Officer Cadre Bar & Switcher */}
+            <CadreProfileBar
+              currentOfficer={currentOfficer}
+              onSelectOfficer={handleSelectOfficer}
+              competencies={currentCompetencies}
+              activeView={activeView}
+              onChangeView={setActiveView}
+              onOpenQuizGenerator={() => setIsQuizGenOpen(true)}
+              onOpenDocUpload={() => setIsDocUploadOpen(true)}
+            />
 
-          {/* Metric ledger */}
-          <MetricStrip
-            officer={currentOfficer}
-            competencies={currentCompetencies}
-            completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length}
-          />
+            {/* Metric ledger */}
+            <MetricStrip
+              officer={currentOfficer}
+              competencies={currentCompetencies}
+              completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length}
+            />
 
-          {/* Conditional View: Cadre Officer vs Training Division Admin */}
-          {activeView === "OFFICER" ? (
-            <div className="flex flex-col gap-14">
-              {/* Asymmetric split: radar takes 5/12, course list takes 7/12 */}
-              <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
-                <div className="lg:col-span-5">
-                  <CompetencyRadarCard
-                    officerName={currentOfficer.name}
-                    cadreRank={currentOfficer.cadreRank}
-                    data={currentCompetencies}
-                    onTakeQuizForCompetency={handleTakeQuizForCompetency}
-                  />
+            {/* Conditional View: Cadre Officer vs Training Division Admin */}
+            {activeView === "OFFICER" ? (
+              <div className="flex flex-col gap-14">
+                {/* Asymmetric split: radar takes 5/12, course list takes 7/12 */}
+                <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
+                  <div className="lg:col-span-5">
+                    <CompetencyRadarCard
+                      officerName={currentOfficer.name}
+                      cadreRank={currentOfficer.cadreRank}
+                      data={currentCompetencies}
+                      onTakeQuizForCompetency={handleTakeQuizForCompetency}
+                    />
+                  </div>
+
+                  <div className="lg:col-span-7">
+                    <CourseRecommendationsList
+                      userId={currentOfficer.id}
+                      recommendations={recommendations}
+                      onCourseCompleted={handleCourseCompleted}
+                    />
+                  </div>
                 </div>
 
-                <div className="lg:col-span-7">
-                  <CourseRecommendationsList
-                    userId={currentOfficer.id}
-                    recommendations={recommendations}
-                    onCourseCompleted={handleCourseCompleted}
-                  />
-                </div>
+                {/* Statistical Guideline RAG Ingestion Dropzone */}
+                <DocumentDropzone onDocumentAdded={handleDocumentAdded} />
               </div>
-
-              {/* Statistical Guideline RAG Ingestion Dropzone */}
-              <DocumentDropzone onDocumentAdded={handleDocumentAdded} />
-            </div>
-          ) : (
-            /* Training Division Admin Dashboard */
-            <TdAdminDashboard />
-          )}
-        </section>
+            ) : (
+              /* Training Division Admin Dashboard */
+              <TdAdminDashboard />
+            )}
+          </section>
+        </DashboardBackground>
       </main>
 
       {/* Modals */}

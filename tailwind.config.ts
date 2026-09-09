@@ -54,9 +54,20 @@ const config: Config = {
         "ping-slow": {
           "75%, 100%": { transform: "scale(1.8)", opacity: "0" },
         },
+        spotlight: {
+          "0%": {
+            opacity: "0",
+            transform: "translate(-72%, -62%) scale(0.6)",
+          },
+          "100%": {
+            opacity: "1",
+            transform: "translate(-50%, -40%) scale(1)",
+          },
+        },
       },
       animation: {
         "ping-slow": "ping-slow 2.2s cubic-bezier(0, 0, 0.2, 1) infinite",
+        spotlight: "spotlight 2s ease 0.3s 1 forwards",
       },
     },
   },

@@ -20,14 +20,13 @@ const Tabs = ({
   value,
   defaultValue,
   onValueChange,
-  layoutId,
+  layoutId = "active-tab-indicator",
   children,
   ...props
 }: TabsProps) => {
   const [internalValue, setInternalValue] = React.useState(defaultValue || "");
   const activeTab = value !== undefined ? value : internalValue;
-  const uniqueId = React.useId();
-  const effectiveLayoutId = layoutId || `active-tab-pill-${uniqueId}`;
+  const effectiveLayoutId = layoutId || "active-tab-indicator";
 
   const handleValueChange = (val: string) => {
     setInternalValue(val);
@@ -83,9 +82,9 @@ const TabsTrigger = React.forwardRef<
       )}
       {...props}
     >
-      {isActive && layoutId && (
+      {isActive && (
         <motion.div
-          layoutId={layoutId}
+          layoutId={layoutId || "active-tab-indicator"}
           className="absolute inset-0 z-[-1] rounded-md border border-slate-700/70 bg-gradient-to-b from-slate-800/90 to-slate-800 shadow-sm"
           transition={{
             type: "spring",

@@ -1092,61 +1092,65 @@ export function resolveQuestionsForQuiz(params: {
   competencyFracCode?: string;
   questionCount?: number;
   difficulty?: number;
+  bloomLevel?: string;
 }): AssessmentQuestion[] {
-  const { documentId, competencyFracCode, questionCount = 3 } = params;
+  const { documentId, competencyFracCode, questionCount = 3, difficulty, bloomLevel } = params;
   const allQuestions = Object.values(SAMPLE_QUESTIONS_DATABASE).flat();
+
+  let matchedQuestions: AssessmentQuestion[] = [];
 
   // 1. If competency is specified, prioritize matching that competency
   if (competencyFracCode) {
-    // Check if the specific document has questions for this competency
     if (documentId && SAMPLE_QUESTIONS_DATABASE[documentId]) {
       const docMatching = SAMPLE_QUESTIONS_DATABASE[documentId].filter(
         (q) => q.competencyFracCode === competencyFracCode
       );
       if (docMatching.length >= questionCount) {
-        return docMatching.slice(0, questionCount);
+        matchedQuestions = [...docMatching];
       }
     }
 
-    // Match across all question banks by competency
-    const competencyMatching = allQuestions.filter(
-      (q) => q.competencyFracCode === competencyFracCode
-    );
-
-    if (competencyMatching.length > 0) {
-      const doc = documentId
-        ? getStoredDocument(documentId) || PRELOADED_DOCUMENTS.find((d) => d.id === documentId)
-        : null;
-
-      return competencyMatching.slice(0, questionCount).map((q) => {
-        if (doc && doc.title) {
-          return { ...q, sourceDocument: doc.title };
-        }
-        return q;
-      });
+    if (matchedQuestions.length === 0) {
+      const competencyMatching = allQuestions.filter(
+        (q) => q.competencyFracCode === competencyFracCode
+      );
+      if (competencyMatching.length > 0) {
+        matchedQuestions = [...competencyMatching];
+      }
     }
   }
 
   // 2. If documentId is provided, check its specific questions or mapped topic
-  if (documentId) {
+  if (matchedQuestions.length === 0 && documentId) {
     if (SAMPLE_QUESTIONS_DATABASE[documentId]?.length > 0) {
-      return SAMPLE_QUESTIONS_DATABASE[documentId].slice(0, questionCount);
-    }
-    const doc = getStoredDocument(documentId) || PRELOADED_DOCUMENTS.find((d) => d.id === documentId);
-    if (doc) {
-      const mappedFrac = getCompetencyForDocument(doc);
-      const mapped = allQuestions.filter((q) => q.competencyFracCode === mappedFrac);
-      if (mapped.length > 0) {
-        return mapped.slice(0, questionCount).map((q) => ({
-          ...q,
-          sourceDocument: doc.title,
-        }));
+      matchedQuestions = [...SAMPLE_QUESTIONS_DATABASE[documentId]];
+    } else {
+      const doc = getStoredDocument(documentId) || PRELOADED_DOCUMENTS.find((d) => d.id === documentId);
+      if (doc) {
+        const mappedFrac = getCompetencyForDocument(doc);
+        const mapped = allQuestions.filter((q) => q.competencyFracCode === mappedFrac);
+        if (mapped.length > 0) {
+          matchedQuestions = [...mapped];
+        }
       }
     }
   }
 
-  // 3. Fallback
-  return allQuestions.slice(0, questionCount);
+  if (matchedQuestions.length === 0) {
+    matchedQuestions = [...allQuestions];
+  }
+
+  // Apply requested difficulty and bloomLevel, and update sourceDocument if documentId is provided
+  const doc = documentId
+    ? getStoredDocument(documentId) || PRELOADED_DOCUMENTS.find((d) => d.id === documentId)
+    : null;
+
+  return matchedQuestions.slice(0, questionCount).map((q) => ({
+    ...q,
+    difficulty: difficulty !== undefined ? difficulty : q.difficulty,
+    bloomLevel: bloomLevel ? (bloomLevel.toUpperCase() as any) : q.bloomLevel,
+    sourceDocument: doc && doc.title ? doc.title : q.sourceDocument,
+  }));
 }
 
 

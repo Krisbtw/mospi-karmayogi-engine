@@ -1,15 +1,18 @@
 "use client";
 
 import { ArrowRight, FileUp } from "lucide-react";
+import { DotMatrixGrid } from "@/components/ui/dot-matrix-grid";
 
 export function HeroSection({ onOpenDocUpload, onStartAssessment }: {
   onOpenDocUpload?: () => void;
   onStartAssessment?: () => void;
 }) {
   return (
-    <div className="overview-hero">
-      <section className="assessment-hero" aria-labelledby="assessment-heading">
-        <div className="assessment-copy">
+    <div className="overview-hero relative">
+      <section className="assessment-hero relative overflow-hidden" aria-labelledby="assessment-heading">
+        {/* Institutional statistical matrix grid */}
+        <DotMatrixGrid opacity={0.22} gap={22} color="#7dd3fc" />
+        <div className="assessment-copy relative z-10">
           <h2 id="assessment-heading">Strengthen your survey<br className="desktop-break" /> sampling skills</h2>
           <p>Take a short diagnostic. Get a learning plan<br className="desktop-break" /> built around your gaps.</p>
           <div className="hero-actions">

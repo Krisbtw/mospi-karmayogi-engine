@@ -7,6 +7,9 @@ import { IgotCourse } from "@/lib/data-service";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CardSpotlight } from "@/components/ui/card-spotlight";
+import { JourneyStepper } from "@/components/ui/journey-stepper";
+import { SovereignVerificationTag } from "@/components/ui/sovereign-verification-tag";
 
 interface CourseRecommendationsListProps {
   userId: string;
@@ -112,103 +115,146 @@ export function CourseRecommendationsList({
         )}
       </AnimatePresence>
 
-      <ol id="recommended-courses" className={cn("course-list", showAll && "is-expanded")} aria-label="Recommended courses">
+      <ol id="recommended-courses" className={cn("course-list grid grid-cols-1 gap-4", showAll && "is-expanded")} aria-label="Recommended courses">
         {items.map((rec) => {
           const isDone = rec.status === "COMPLETED";
           const isEnrolled = rec.status === "ENROLLED" || rec.status === "IN_PROGRESS";
           const isSyncing = syncingId === rec.id;
 
+          // Compute structured 4-step micro-curriculum journey
+          const journeySteps = [
+            {
+              id: "gap",
+              label: "FRAC Gap",
+              sublabel: rec.competencyLabel,
+              status: "completed" as const,
+            },
+            {
+              id: "module",
+              label: "iGOT Course",
+              sublabel: `${rec.durationHours}h · ${rec.provider}`,
+              status: (isDone ? "completed" : isEnrolled ? "current" : "upcoming") as "completed" | "current" | "upcoming",
+            },
+            {
+              id: "exercise",
+              label: "Field Exercise",
+              sublabel: "NSSO / MoSPI Practice",
+              status: (isDone ? "completed" : "upcoming") as "completed" | "current" | "upcoming",
+            },
+            {
+              id: "reassess",
+              label: "Post-Assessment",
+              sublabel: isDone ? "Benchmark Validated" : "Diagnostic Re-test",
+              status: (isDone ? "completed" : "upcoming") as "completed" | "current" | "upcoming",
+            },
+          ];
+
           return (
-            <li
-              key={rec.id}
-              className="course-item"
-            >
-              <details className="course-disclosure">
-              <summary className="course-summary">
-                <span className="course-icon"><BookOpen aria-hidden="true" /></span>
-                <span className="course-preview"><strong>{rec.courseTitle}</strong><span>{isDone ? "Certified" : "Learning"} <i>·</i> {rec.durationHours} h</span></span>
-                <span className="course-open"><ArrowRight aria-hidden="true" /></span>
-              </summary>
-              <div className="course-detail">
-              <div className="min-w-0">
-                <h4
-                  className={cn(
-                    "text-sm font-medium leading-snug text-balance",
-                    isDone ? "text-fg-muted line-through decoration-slate-400" : "text-fg"
-                  )}
-                >
-                  {rec.courseTitle}
-                </h4>
-                <p className="mt-1 text-xs leading-relaxed text-fg-muted text-pretty">
-                  Resolves <span className="font-medium text-fg">{rec.competencyLabel}</span>
-                  <span className="text-fg-muted"> · </span>
-                  <span className="font-mono">{Math.round(rec.matchScore * 100)}% match</span>
-                  <span className="text-fg-muted"> · </span>
-                  <span className="font-mono">{rec.durationHours} h</span>
-                  <span className="text-fg-muted"> · </span>
-                  {rec.provider}
-                </p>
-              </div>
-
-              {/* Actions — bottom/right aligned as a unit */}
-              <div className="col-span-2 flex items-center justify-end gap-2 sm:col-span-1">
-                <span
-                  className={cn(
-                    "font-mono text-[11px] uppercase tracking-[0.12em]",
-                    isDone ? "text-emerald-700" : isEnrolled ? "text-primary" : "text-fg-muted"
-                  )}
-                >
-                  {STATUS_LABEL[rec.status]}
-                </span>
-
-                {rec.courseUrl && (
-                  <Button variant="ghost" size="icon-sm" asChild className="h-7 w-7 text-fg-muted hover:text-fg" title="Open iGOT Karmayogi Bharat portal">
-                    <a href={rec.courseUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${rec.courseTitle} on iGOT Karmayogi`}>
-                      <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                    </a>
-                  </Button>
+            <li key={rec.id} className="list-none">
+              <CardSpotlight
+                radius={240}
+                color="rgba(0, 160, 165, 0.16)"
+                className={cn(
+                  "p-5 transition-all",
+                  isDone && "bg-slate-50/50 dark:bg-slate-900/40 opacity-90"
                 )}
+              >
+                <div className="flex flex-col gap-4">
+                  {/* Top row with Title, Match Score & Actions */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-primary",
+                        isDone
+                          ? "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40"
+                          : "border-primary/20 bg-primary/10"
+                      )}>
+                        <BookOpen className="h-4 w-4" aria-hidden="true" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className={cn("text-sm font-semibold leading-snug", isDone ? "text-fg-muted line-through" : "text-fg")}>
+                            {rec.courseTitle}
+                          </h4>
+                          {isDone ? (
+                            <SovereignVerificationTag level="Certified" source="iGOT Bharat API" />
+                          ) : (
+                            <span className={cn(
+                              "rounded-full px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider",
+                              isEnrolled ? "bg-primary/15 text-primary" : "bg-slate-100 text-slate-600"
+                            )}>
+                              {STATUS_LABEL[rec.status]}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-fg-muted flex items-center gap-2 flex-wrap">
+                          <span>Resolves <strong className="text-fg">{rec.competencyLabel}</strong></span>
+                          <span>·</span>
+                          <span className="font-mono text-primary font-medium">{Math.round(rec.matchScore * 100)}% match</span>
+                          <span>·</span>
+                          <span className="font-mono">{rec.durationHours} hrs</span>
+                          <span>·</span>
+                          <span>{rec.provider}</span>
+                        </p>
+                      </div>
+                    </div>
 
-                {!isDone && !isEnrolled && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={isSyncing}
-                    onClick={() => handleSync(rec)}
-                    className="h-7 gap-1.5 px-2.5 text-xs"
-                  >
-                    <RefreshCw className={cn("h-3 w-3", isSyncing && "animate-spin")} aria-hidden />
-                    <span>{isSyncing ? "Enrolling…" : "Enrol"}</span>
-                  </Button>
-                )}
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-start">
+                      {rec.courseUrl && (
+                        <Button variant="ghost" size="icon-sm" asChild className="h-8 w-8 text-fg-muted hover:text-fg" title="Open iGOT Karmayogi Bharat portal">
+                          <a href={rec.courseUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${rec.courseTitle} on iGOT Karmayogi`}>
+                            <ExternalLink className="h-4 w-4" aria-hidden />
+                          </a>
+                        </Button>
+                      )}
 
-                {isEnrolled && !isDone && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => handleSimulateComplete(rec)}
-                    className="h-7 gap-1.5 px-2.5 text-xs"
-                  >
-                    <Check className="h-3 w-3" aria-hidden />
-                    <span>Mark complete</span>
-                  </Button>
-                )}
+                      {!isDone && !isEnrolled && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isSyncing}
+                          onClick={() => handleSync(rec)}
+                          className="h-8 gap-1.5 px-3 text-xs border-primary/40 hover:bg-primary/10"
+                        >
+                          <RefreshCw className={cn("h-3 w-3", isSyncing && "animate-spin")} aria-hidden />
+                          <span>{isSyncing ? "Enrolling…" : "Enrol via iGOT"}</span>
+                        </Button>
+                      )}
 
-                {isDone && onReassessCompetency && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onReassessCompetency(rec.competencyFracCode)}
-                    className="h-7 gap-1.5 border-sky-500/40 bg-sky-500/10 text-primary hover:bg-sky-500/25 hover:text-fg px-2.5 text-xs font-medium"
-                    title={`Take diagnostic re-assessment for ${rec.competencyLabel}`}
-                  >
-                    <RefreshCw className="h-3 w-3 text-primary" aria-hidden />
-                    <span>Re-assess</span>
-                  </Button>
-                )}
-              </div>
-              </div>
-              </details>
+                      {isEnrolled && !isDone && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleSimulateComplete(rec)}
+                          className="h-8 gap-1.5 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          <Check className="h-3 w-3" aria-hidden />
+                          <span>Mark completed</span>
+                        </Button>
+                      )}
+
+                      {isDone && onReassessCompetency && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onReassessCompetency(rec.competencyFracCode)}
+                          className="h-8 gap-1.5 border-sky-500/40 bg-sky-500/10 text-primary hover:bg-sky-500/25 px-3 text-xs font-medium"
+                          title={`Take diagnostic re-assessment for ${rec.competencyLabel}`}
+                        >
+                          <RefreshCw className="h-3 w-3 text-primary" aria-hidden />
+                          <span>Re-test FRAC</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* iGOT Micro-Curriculum Stepper / Journey Rail */}
+                  <div className="border-t border-border/80 pt-3">
+                    <JourneyStepper steps={journeySteps} />
+                  </div>
+                </div>
+              </CardSpotlight>
             </li>
           );
         })}

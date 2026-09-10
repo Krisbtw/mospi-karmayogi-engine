@@ -125,7 +125,86 @@ export function TdAdminDashboard() {
             </div>
           )}
 
-          {/* Zig-zag: alternate rows swap the header and bar columns so the eye doesn't scan a uniform grid */}
+          {/* Interactive Deficit Cohort Heatmap Grid */}
+          <div className="mb-10 overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+            <div className="border-b border-border bg-slate-50/70 p-4 dark:bg-slate-900/50 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-semibold text-fg">Cadre-Wide Deficit Heatmap Matrix</h4>
+                <p className="text-xs text-fg-muted">Divisions (Y-Axis) × FRAC Competencies (X-Axis)</p>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-emerald-500/20 border border-emerald-500/40" /> &lt;20% Low Deficit</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-amber-500/25 border border-amber-500/50" /> 20-50% Moderate</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-red-500/25 border border-red-500/50" /> &gt;50% Critical Priority</span>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[680px]">
+                <thead>
+                  <tr className="border-b border-border bg-slate-100/50 text-[11px] font-mono text-fg-muted uppercase tracking-wider">
+                    <th className="p-3.5 pl-5 font-semibold text-fg">Operational Wing / Division</th>
+                    <th className="p-3.5 font-semibold text-center">Officers</th>
+                    <th className="p-3.5 font-semibold">Survey Sampling</th>
+                    <th className="p-3.5 font-semibold">Price Indexing (CPI)</th>
+                    <th className="p-3.5 font-semibold">R/Python Microdata</th>
+                    <th className="p-3.5 font-semibold">Data Ethics & Laws</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border text-xs">
+                  {TD_CADRE_HEATMAP_DATA.map((row) => {
+                    const getCompGap = (keyword: string) => {
+                      const found = row.competencies.find((c) =>
+                        c.label.toLowerCase().includes(keyword.toLowerCase())
+                      );
+                      return found ? found.gapPercent : null;
+                    };
+
+                    const renderCell = (gap: number | null) => {
+                      if (gap === null) return <span className="text-slate-300 font-mono">—</span>;
+                      const isHigh = gap >= 50;
+                      const isMod = gap >= 20 && gap < 50;
+                      return (
+                        <div
+                          className={cn(
+                            "inline-flex items-center justify-center rounded-lg px-2.5 py-1.5 font-mono text-xs font-semibold transition-all hover:scale-105 shadow-sm",
+                            isHigh
+                              ? "bg-red-500/15 text-red-700 border border-red-500/30 dark:text-red-300"
+                              : isMod
+                              ? "bg-amber-500/15 text-amber-700 border border-amber-500/30 dark:text-amber-300"
+                              : "bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 dark:text-emerald-300"
+                          )}
+                          title={`${gap}% of cadre sitting below FRAC standard`}
+                        >
+                          {gap}%
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <tr key={row.division} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors">
+                        <td className="p-3.5 pl-5 font-medium text-fg">
+                          <div>
+                            <span className="text-sm font-semibold">{row.division}</span>
+                            <span className="block text-[11px] text-fg-muted font-normal">{row.cadreBreakdown}</span>
+                          </div>
+                        </td>
+                        <td className="p-3.5 text-center font-mono font-semibold text-fg">
+                          {row.totalOfficers}
+                        </td>
+                        <td className="p-3.5">{renderCell(getCompGap("Sampling") ?? getCompGap("Industrial"))}</td>
+                        <td className="p-3.5">{renderCell(getCompGap("Price") ?? getCompGap("National"))}</td>
+                        <td className="p-3.5">{renderCell(getCompGap("R/Python"))}</td>
+                        <td className="p-3.5">{renderCell(getCompGap("Integrity") ?? getCompGap("Sampling"))}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Division deficit matrix */}
           <div className="flex flex-col divide-y divide-border">
             {TD_CADRE_HEATMAP_DATA.map((division, idx) => {
               const reversed = idx % 2 === 1;

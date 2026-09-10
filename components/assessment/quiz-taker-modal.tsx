@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Clock, Check, ArrowRight, ArrowLeft, BookOpen, AlertCircle } from "lucide-react";
+import { X, Clock, Check, ArrowRight, ArrowLeft, BookOpen, AlertCircle, ShieldCheck } from "lucide-react";
 import { AssessmentQuestion } from "@/lib/data-service";
 import { cn } from "@/lib/utils";
+import { CitationAccordion, CitationItem } from "@/components/ui/citation-accordion";
 
 interface QuizTakerModalProps {
   isOpen: boolean;
@@ -367,14 +368,22 @@ export function QuizTakerModal({
                           {q.rationale}
                         </p>
 
-                        <blockquote className="border-l-2 border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-fg-muted rounded-r">
-                          <p className="flex items-center gap-1.5 font-medium text-fg-muted">
-                            <BookOpen className="h-3.5 w-3.5 text-amber-700" aria-hidden />
-                            {q.sourceDocument}
-                            <span className="font-normal text-fg-muted">· {q.sourceCitation}</span>
-                          </p>
-                          <p className="mt-1 italic text-fg-muted">&ldquo;{q.sourceSnippet}&rdquo;</p>
-                        </blockquote>
+                        <div className="mt-1">
+                          <CitationAccordion
+                            citations={[
+                              {
+                                id: q.id,
+                                sourceDocument: q.sourceDocument,
+                                sourceCitation: q.sourceCitation,
+                                sourceSnippet: q.sourceSnippet,
+                                handbookSection: `Verified via RAG: ${q.sourceCitation}`,
+                                fracMapping: q.competencyFracCode,
+                              },
+                            ]}
+                            title="Ground-Truth Citation & Evidence Snippet"
+                            defaultExpanded={!isCorrect}
+                          />
+                        </div>
                       </li>
                     );
                   })}

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       { status: 422 }
     );
   }
-  const { documentId, competencyFracCodes, questionCount, bloomDistribution } = parsed.data;
+  const { documentId, competencyFracCodes, questionCount, difficulty, bloomLevel, bloomDistribution } = parsed.data;
 
   // 1. Verify Document availability (Prisma or In-Memory Store)
   let docTitle = "MoSPI Methodology Handbook";
@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
       documentId,
       competencyFracCode: primaryFrac,
       questionCount,
+      difficulty,
     });
 
     // Ensure sourceDocument cites docTitle if docTitle is available
@@ -140,8 +141,8 @@ export async function POST(req: NextRequest) {
           ],
           correctChoice: "A",
           rationale: `As documented in the official guideline: "${chunk.content.slice(0, 180)}...", standardized methodology must be observed to maintain statistical precision.`,
-          bloomLevel: "ANALYZE",
-          difficulty: 3,
+          bloomLevel: bloomLevel ? (bloomLevel as any) : "ANALYZE",
+          difficulty: difficulty || 3,
           competencyFracCode: frac,
           competencyLabel: `Competency ${frac}`,
           sourceDocument: docTitle,

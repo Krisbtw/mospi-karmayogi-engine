@@ -2,7 +2,7 @@
 
 import { useState, useRef, DragEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { UploadCloud, FileText, Check, ArrowRight, Loader2 } from "lucide-react";
+import { UploadCloud, FileText, Check, ArrowRight, Loader2, Sparkles, Shield, BookMarked } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DocumentItem } from "@/lib/data-service";
 
@@ -239,14 +239,31 @@ export function DocumentDropzone({
               }
             }}
             className={cn(
-              "group relative flex min-h-[180px] flex-col items-center justify-center overflow-hidden rounded-md border border-dashed p-8 text-center transition-[border-color,background-color,transform] duration-200",
+              "group relative flex min-h-[200px] flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-8 text-center transition-all duration-300",
               canOpenPicker && "cursor-pointer active:scale-[0.995]",
               focusRing,
               isDragActive
-                ? "border-primary bg-primary/5"
-                : "border-border bg-bg hover:border-slate-500 hover:bg-bg"
+                ? "border-primary bg-primary/10 shadow-[0_0_30px_rgba(0,160,165,0.25)] ring-2 ring-primary/40"
+                : "border-slate-300/80 bg-slate-50/50 hover:border-primary/60 hover:bg-slate-50/90 hover:shadow-lg dark:border-slate-700/80 dark:bg-slate-900/40"
             )}
           >
+            {/* Ambient radial glow following dropzone center */}
+            <div
+              className={cn(
+                "pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100",
+                isDragActive && "opacity-100"
+              )}
+              style={{
+                background:
+                  "radial-gradient(400px circle at center, rgba(0, 160, 165, 0.12), transparent 70%)",
+              }}
+              aria-hidden="true"
+            />
+            {/* Pulsing corner accent dots */}
+            <div className="pointer-events-none absolute top-3 left-3 h-1.5 w-1.5 rounded-full bg-primary/40 group-hover:bg-primary" />
+            <div className="pointer-events-none absolute top-3 right-3 h-1.5 w-1.5 rounded-full bg-primary/40 group-hover:bg-primary" />
+            <div className="pointer-events-none absolute bottom-3 left-3 h-1.5 w-1.5 rounded-full bg-primary/40 group-hover:bg-primary" />
+            <div className="pointer-events-none absolute bottom-3 right-3 h-1.5 w-1.5 rounded-full bg-primary/40 group-hover:bg-primary" />
             <input
               ref={fileInputRef}
               type="file"

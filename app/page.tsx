@@ -72,6 +72,8 @@ export default function HomePage() {
           documentId: config.documentId,
           competencyFracCodes: [config.competencyFracCode],
           questionCount: config.questionCount,
+          difficulty: config.difficulty,
+          bloomLevel: config.bloomLevel,
         }),
       });
 
@@ -210,7 +212,13 @@ export default function HomePage() {
               <div className="upload-callout">
                 <span className="upload-callout-icon"><FileUp aria-hidden="true" /></span>
                 <div><h2>Turn a manual into a source-linked quiz</h2><p>PDF, DOCX or TXT <span>·</span> Answers linked to the evidence</p></div>
-                <button className="primary-action" onClick={() => setIsDocUploadOpen(true)}>Upload material</button>
+                <button
+                  type="button"
+                  className="primary-action"
+                  onClick={() => setIsDocUploadOpen(true)}
+                >
+                  Upload material
+                </button>
               </div>
               <details className="inline-ingestion"><summary>Or drop a file and explore preset manuals</summary><DocumentDropzone onDocumentAdded={handleDocumentAdded} /></details>
             </section>

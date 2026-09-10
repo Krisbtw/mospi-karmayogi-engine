@@ -40,11 +40,12 @@ export const GeneratedQuestionSetSchema = z.object({
 export type GeneratedQuestion = z.infer<typeof GeneratedQuestionSchema>;
 export type GeneratedQuestionSet = z.infer<typeof GeneratedQuestionSetSchema>;
 
-/// Request body for POST /api/assessment/generate
 export const GenerateAssessmentRequestSchema = z.object({
   documentId: z.string().min(1),
   competencyFracCodes: z.array(z.string()).min(1),
   questionCount: z.number().int().min(1).max(20).default(10),
+  difficulty: z.number().int().min(1).max(5).optional(),
+  bloomLevel: z.string().optional(),
   bloomDistribution: z.record(BloomLevelSchema, z.number().int().min(0)).optional(),
   cadreRank: z
     .enum(["JSO", "SO", "ASO", "DD", "DIRECTOR", "SENIOR_DIRECTOR"])

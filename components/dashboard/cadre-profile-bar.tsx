@@ -44,7 +44,12 @@ export function CadreProfileBar({ currentOfficer, onSelectOfficer, competencies,
       <div className="workspace-context flex flex-wrap items-center gap-3">
         {/* Live Circular FRAC Compliance Gauge */}
         {activeView === "OFFICER" && (
-          <CircularGauge value={complianceRate} label="FRAC Readiness" />
+          <CircularGauge
+            value={complianceRate}
+            metCount={metCount}
+            totalCount={competencies.length || 5}
+            label="FRAC Readiness"
+          />
         )}
 
         {/* Institutional Quick Action Buttons (Integrated into header) */}

@@ -72,10 +72,14 @@ export function CompetencyRadarCard({
       <div id="competency-evidence" hidden={!evidenceOpen} className="competency-evidence">
       <div>
         <CardHeader className="pb-2">
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-fg-muted">
-            FRAC baseline mapping
-          </p>
-          <CardTitle className="text-lg">{officerName}</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-fg-muted">
+                FRAC baseline mapping
+              </p>
+              <CardTitle className="text-lg">{officerName}</CardTitle>
+            </div>
+          </div>
           <CardDescription>Assessed level against the {cadreRank} expected standard</CardDescription>
 
           <div className="mt-3 flex items-center gap-5 text-xs text-fg-muted">

@@ -1,0 +1,117 @@
+"use client";
+
+import * as React from "react";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+
+interface TabsContextValue {
+  activeTab?: string;
+  layoutId?: string;
+}
+
+const TabsContext = React.createContext<TabsContextValue>({});
+
+interface TabsProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> {
+  layoutId?: string;
+}
+
+const Tabs = ({
+  value,
+  defaultValue,
+  onValueChange,
+  layoutId = "active-tab-indicator",
+  children,
+  ...props
+}: TabsProps) => {
+  const [internalValue, setInternalValue] = React.useState(defaultValue || "");
+  const activeTab = value !== undefined ? value : internalValue;
+  const effectiveLayoutId = layoutId || "active-tab-indicator";
+
+  const handleValueChange = (val: string) => {
+    setInternalValue(val);
+    onValueChange?.(val);
+  };
+
+  return (
+    <TabsPrimitive.Root
+      value={value}
+      defaultValue={defaultValue}
+      onValueChange={handleValueChange}
+      {...props}
+    >
+      <TabsContext.Provider value={{ activeTab, layoutId: effectiveLayoutId }}>
+        {children}
+      </TabsContext.Provider>
+    </TabsPrimitive.Root>
+  );
+};
+Tabs.displayName = "Tabs";
+
+const TabsList = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.List>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.List
+    ref={ref}
+    className={cn(
+      "inline-flex h-9 items-center justify-center rounded-lg border border-border bg-surface p-1 text-fg-muted shadow-inner backdrop-blur-md",
+      className
+    )}
+    {...props}
+  />
+));
+TabsList.displayName = TabsPrimitive.List.displayName;
+
+const TabsTrigger = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, children, value, ...props }, ref) => {
+  const { activeTab, layoutId } = React.useContext(TabsContext);
+  const isActive = activeTab === value;
+
+  return (
+    <TabsPrimitive.Trigger
+      ref={ref}
+      value={value}
+      className={cn(
+        "relative inline-flex items-center justify-center whitespace-nowrap rounded-md px-3.5 py-1 text-xs font-medium transition-colors duration-150 z-10 select-none",
+        "text-fg-muted hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        isActive && "text-fg font-semibold",
+        className
+      )}
+      {...props}
+    >
+      {isActive && (
+        <motion.div
+          layoutId={layoutId || "active-tab-indicator"}
+          className="absolute inset-0 z-[-1] rounded-md border border-border bg-gradient-to-b from-primary/10 to-primary/5 shadow-sm"
+          transition={{
+            type: "spring",
+            stiffness: 450,
+            damping: 34,
+          }}
+        />
+      )}
+      <span className="relative z-10">{children}</span>
+    </TabsPrimitive.Trigger>
+  );
+});
+TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
+
+const TabsContent = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Content
+    ref={ref}
+    className={cn(
+      "mt-2 ring-offset-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+      className
+    )}
+    {...props}
+  />
+));
+TabsContent.displayName = TabsPrimitive.Content.displayName;
+
+export { Tabs, TabsList, TabsTrigger, TabsContent };

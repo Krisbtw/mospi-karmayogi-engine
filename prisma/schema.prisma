@@ -1,0 +1,362 @@
+// ============================================================================
+// MoSPI × iGOT Karmayogi — AI Capacity-Building Platform
+// Prisma schema (PostgreSQL + pgvector for embeddings)
+// ============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector]
+}
+
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+
+/// Cadre hierarchy inside the Indian Statistical Service / Subordinate
+/// Statistical Service, used to gate assessment difficulty and dashboards.
+enum CadreRank {
+  JSO // Junior Statistical Officer
+  SO // Statistical Officer
+  ASO // Assistant Director / Senior Statistical Officer
+  DD // Deputy Director
+  DIRECTOR
+  SENIOR_DIRECTOR
+}
+
+enum UserRole {
+  CADRE_OFFICER
+  TRAINING_DIVISION_ADMIN
+  SUPER_ADMIN
+}
+
+/// Karmayogi FRAC competency taxonomy category.
+enum CompetencyCategory {
+  DOMAIN
+  FUNCTIONAL
+  BEHAVIORAL
+}
+
+enum ProficiencyLevel {
+  LEVEL_1
+  LEVEL_2
+  LEVEL_3
+  LEVEL_4
+  LEVEL_5
+}
+
+enum BloomLevel {
+  REMEMBER
+  UNDERSTAND
+  APPLY
+  ANALYZE
+  EVALUATE
+  CREATE
+}
+
+enum AssessmentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+}
+
+enum DocumentSourceType {
+  PLFS_HANDBOOK
+  CPI_METHODOLOGY
+  ASI_METHODOLOGY
+  NATIONAL_ACCOUNTS_MANUAL
+  CIRCULAR
+  OTHER
+}
+
+enum DocumentStatus {
+  UPLOADED
+  CHUNKING
+  EMBEDDING
+  READY
+  FAILED
+}
+
+enum RecommendationStatus {
+  RECOMMENDED
+  ENROLLED
+  IN_PROGRESS
+  COMPLETED
+  DISMISSED
+}
+
+// ----------------------------------------------------------------------------
+// Identity & Org structure
+// ----------------------------------------------------------------------------
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  designation   String // e.g. "Junior Statistical Officer"
+  cadreRank     CadreRank
+  role          UserRole @default(CADRE_OFFICER)
+
+  /// NSSO / CSO regional or sub-divisional posting, e.g. "FOD - Pune Region"
+  region        String?
+  subDivision   String?
+
+  /// Karmayogi Bharat (Sunbird) identity, for SSO + course-progress sync.
+  igotUserId    String?  @unique
+  frac_position String? // FRAC position-code this officer is mapped to
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assessmentAttempts AssessmentAttempt[]
+  proficiencies      UserCompetencyProficiency[]
+  recommendations    CourseRecommendation[]
+  uploadedDocuments  Document[]
+  createdAssessments Assessment[]                @relation("AssessmentAuthor")
+
+  @@index([cadreRank])
+  @@index([region])
+}
+
+// ----------------------------------------------------------------------------
+// Competency model (Karmayogi FRAC dictionary)
+// ----------------------------------------------------------------------------
+
+model Competency {
+  id       String              @id @default(cuid())
+  /// Karmayogi FRAC competency code, e.g. "FN-STAT-014"
+  fracCode String              @unique
+  name     String
+  category CompetencyCategory
+  description String?
+
+  /// The MoSPI cadre ranks for which this competency is part of the
+  /// expected baseline (drives gap-detection targets).
+  expectedForRanks CadreRank[]
+
+  parentId   String?
+  parent     Competency?  @relation("CompetencyHierarchy", fields: [parentId], references: [id])
+  children   Competency[] @relation("CompetencyHierarchy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questions            Question[]
+  userProficiencies     UserCompetencyProficiency[]
+  courseRecommendations CourseRecommendation[]
+  igotMapping           IgotCompetencyMapping?
+
+  @@index([category])
+}
+
+/// Detected / self-assessed proficiency of one officer against one
+/// competency — the core "gap detection" record. Target level is derived
+/// from Competency.expectedForRanks + the user's cadreRank at write time.
+model UserCompetencyProficiency {
+  id             String           @id @default(cuid())
+  userId         String
+  competencyId   String
+  currentLevel   ProficiencyLevel
+  targetLevel    ProficiencyLevel
+  source         String // "QUIZ" | "SELF_ASSESSMENT" | "MANAGER_REVIEW"
+  lastAssessedAt DateTime         @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, competencyId])
+  @@index([competencyId])
+}
+
+/// Direct mapping from an internal Competency to iGOT Karmayogi's own
+/// competency code + a cached Sunbird/Wattson course catalog slice.
+model IgotCompetencyMapping {
+  id                String   @id @default(cuid())
+  competencyId      String   @unique
+  igotCompetencyCode String  @unique
+  igotFrameworkId   String // Sunbird framework id
+  lastSyncedAt      DateTime?
+
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+}
+
+// ----------------------------------------------------------------------------
+// Source documents + RAG pipeline
+// ----------------------------------------------------------------------------
+
+model Document {
+  id           String             @id @default(cuid())
+  title        String
+  sourceType   DocumentSourceType
+  status       DocumentStatus     @default(UPLOADED)
+  fileUrl      String // object storage URL
+  fileSizeKb   Int?
+  pageCount    Int?
+  uploadedById String
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploadedBy User       @relation(fields: [uploadedById], references: [id])
+  chunks     DocumentChunk[]
+  questions  Question[]
+
+  @@index([status])
+}
+
+/// One semantically-bounded chunk of a source document, with its
+/// embedding for retrieval during MCQ generation.
+model DocumentChunk {
+  id          String   @id @default(cuid())
+  documentId  String
+  ordinal     Int // position within the document
+  content     String
+  tokenCount  Int?
+  /// Breadcrumb of section headings this chunk fell under, e.g.
+  /// ["Chapter 4: Sampling Design", "4.3 Stratification"].
+  headingPath String[]
+  /// pgvector column — 1536-dim (OpenAI text-embedding-3-small) by default.
+  /// Prisma models it as Unsupported; raw SQL migration adds the real type.
+  embedding   Unsupported("vector(1536)")?
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@unique([documentId, ordinal])
+}
+
+// ----------------------------------------------------------------------------
+// Assessments & Questions
+// ----------------------------------------------------------------------------
+
+model Assessment {
+  id          String           @id @default(cuid())
+  title       String
+  description String?
+  status      AssessmentStatus @default(DRAFT)
+  cadreRanks  CadreRank[] // which ranks this assessment targets
+  durationMin Int              @default(30)
+  authorId    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User                 @relation("AssessmentAuthor", fields: [authorId], references: [id])
+  questions AssessmentQuestion[]
+  attempts  AssessmentAttempt[]
+
+  @@index([status])
+}
+
+/// Join table preserving explicit ordering + point value of a question
+/// within a specific assessment (a Question can be reused across many).
+model AssessmentQuestion {
+  id           String @id @default(cuid())
+  assessmentId String
+  questionId   String
+  ordinal      Int
+  points       Int    @default(1)
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, questionId])
+  @@index([assessmentId])
+}
+
+/// A single MCQ, either authored manually or generated by the RAG pipeline
+/// (in which case sourceDocumentId + sourceChunkIds are populated).
+model Question {
+  id            String     @id @default(cuid())
+  stem          String
+  choices       Json // [{ id: "A", text: "..." }, ...]
+  correctChoice String // matches one choices[].id
+  rationale     String
+  bloomLevel    BloomLevel
+  difficulty    Int        @default(2) // 1-5
+  competencyId  String
+
+  isAiGenerated      Boolean  @default(false)
+  sourceDocumentId   String?
+  sourceChunkIds     String[] // DocumentChunk ids used as grounding context
+  generationPrompt   String? // stored for auditability/regeneration
+  reviewedByHuman    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  competency       Competency            @relation(fields: [competencyId], references: [id])
+  sourceDocument   Document?             @relation(fields: [sourceDocumentId], references: [id])
+  assessmentLinks  AssessmentQuestion[]
+  responses        QuestionResponse[]
+
+  @@index([competencyId])
+  @@index([isAiGenerated])
+}
+
+model AssessmentAttempt {
+  id           String        @id @default(cuid())
+  assessmentId String
+  userId       String
+  status       AttemptStatus @default(IN_PROGRESS)
+  startedAt    DateTime      @default(now())
+  submittedAt  DateTime?
+  scorePercent Float?
+
+  assessment Assessment         @relation(fields: [assessmentId], references: [id])
+  user       User               @relation(fields: [userId], references: [id])
+  responses  QuestionResponse[]
+
+  @@index([userId])
+  @@index([assessmentId])
+}
+
+model QuestionResponse {
+  id            String   @id @default(cuid())
+  attemptId     String
+  questionId    String
+  selectedChoice String?
+  isCorrect     Boolean?
+  answeredAt    DateTime @default(now())
+
+  attempt  AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question          @relation(fields: [questionId], references: [id])
+
+  @@unique([attemptId, questionId])
+}
+
+// ----------------------------------------------------------------------------
+// iGOT Karmayogi course recommendations
+// ----------------------------------------------------------------------------
+
+model CourseRecommendation {
+  id             String               @id @default(cuid())
+  userId         String
+  competencyId   String
+  igotCourseId   String // Sunbird/Wattson course identifier
+  courseTitle    String
+  courseUrl      String?
+  status         RecommendationStatus @default(RECOMMENDED)
+  matchScore     Float // 0-1, how strongly this closes the detected gap
+  recommendedAt  DateTime             @default(now())
+  completedAt    DateTime?
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}

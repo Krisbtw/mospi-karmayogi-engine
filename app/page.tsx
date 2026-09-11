@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Navbar } from "@/components/navbar";
+import { Navbar, NavTab } from "@/components/navbar";
 import { HeroSection } from "@/components/hero-section";
 import { CadreProfileBar } from "@/components/dashboard/cadre-profile-bar";
 import { CompetencyRadarCard } from "@/components/dashboard/competency-radar-card";
@@ -12,7 +12,11 @@ import { TdAdminDashboard } from "@/components/dashboard/td-admin-dashboard";
 import { DocumentUploadModal } from "@/components/documents/document-upload-modal";
 import { QuizGeneratorModal } from "@/components/assessment/quiz-generator-modal";
 import { QuizTakerModal } from "@/components/assessment/quiz-taker-modal";
-import { FileUp } from "lucide-react";
+import { GapAnalysisView } from "@/components/views/gap-analysis-view";
+import { AssessView } from "@/components/views/assess-view";
+import { HistoryView } from "@/components/views/history-view";
+import { ProfileView } from "@/components/views/profile-view";
+import { FileUp, Sparkles, BookOpen, Target, ArrowRight } from "lucide-react";
 import {
   Officer,
   DEMO_OFFICERS,
@@ -34,7 +38,7 @@ export default function HomePage() {
   );
   const [documents, setDocuments] = useState<DocumentItem[]>(PRELOADED_DOCUMENTS);
   const [recommendations, setRecommendations] = useState<IgotCourse[]>(IGOT_COURSE_CATALOG);
-  const [activeView, setActiveView] = useState<"OFFICER" | "TD_ADMIN">("OFFICER");
+  const [activeTab, setActiveTab] = useState<NavTab>("dashboard");
 
   // Modal states
   const [isDocUploadOpen, setIsDocUploadOpen] = useState(false);
@@ -94,12 +98,13 @@ export default function HomePage() {
       console.warn("API generate fetch fallback:", err);
     }
 
-    // Robust Grounded Fallback: guarantee competency match
+    // Robust Grounded Fallback: guarantee competency match, difficulty escalation, and exact count
     const resolvedQuestions = resolveQuestionsForQuiz({
       documentId: config.documentId,
       competencyFracCode: config.competencyFracCode,
       questionCount: config.questionCount,
       difficulty: config.difficulty,
+      bloomLevel: config.bloomLevel,
     });
 
     setActiveQuestions(resolvedQuestions);
@@ -108,11 +113,19 @@ export default function HomePage() {
 
   // Direct shortcut from radar chart
   const handleTakeQuizForCompetency = (fracCode: string) => {
+    const defaultDiff = currentOfficer.cadreRank === "DD" ? 5 : currentOfficer.cadreRank === "SO" ? 4 : 3;
     const resolved = resolveQuestionsForQuiz({
       competencyFracCode: fracCode,
-      questionCount: 3,
+      questionCount: 5,
+      difficulty: defaultDiff,
     });
     setActiveQuestions(resolved);
+    setIsQuizTakerOpen(true);
+  };
+
+  // Start quiz from Assess view
+  const handleAssessStartQuiz = (questions: AssessmentQuestion[], competencyFracCode: string) => {
+    setActiveQuestions(questions);
     setIsQuizTakerOpen(true);
   };
 
@@ -139,6 +152,8 @@ export default function HomePage() {
         return { ...prev, [currentOfficer.id]: updated };
       });
     }
+    // Navigate directly to Gap Analysis view after updating competency profile
+    setActiveTab("gap-analysis");
   };
 
   // iGOT Course Completion simulation (closes the gap in real time)
@@ -166,42 +181,41 @@ export default function HomePage() {
     );
   };
 
-  return (
-    <div className="workspace-shell">
-      <Navbar
-        officer={currentOfficer}
-        competencies={currentCompetencies}
-        recommendations={recommendations}
-        documents={documents}
-        onStartAssessment={() => setIsQuizGenOpen(true)}
-        onOpenDocUpload={() => setIsDocUploadOpen(true)}
-        onShowOfficerView={() => setActiveView("OFFICER")}
-        onTakeQuiz={handleTakeQuizForCompetency}
-      />
-      <main id="dashboard" className="workspace-main">
-        <CadreProfileBar
-          currentOfficer={currentOfficer}
-          onSelectOfficer={handleSelectOfficer}
-          competencies={currentCompetencies}
-          activeView={activeView}
-          onChangeView={setActiveView}
-          onOpenQuizGenerator={() => setIsQuizGenOpen(true)}
-          onOpenDocUpload={() => setIsDocUploadOpen(true)}
-        />
-        {activeView === "OFFICER" ? (
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return (
           <>
-            <HeroSection onOpenDocUpload={() => setIsDocUploadOpen(true)} onStartAssessment={() => setIsQuizGenOpen(true)} />
-            <MetricStrip officer={currentOfficer} competencies={currentCompetencies} completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length} />
+            <HeroSection
+              onOpenDocUpload={() => setIsDocUploadOpen(true)}
+              onStartAssessment={() => setIsQuizGenOpen(true)}
+            />
+            <MetricStrip
+              officer={currentOfficer}
+              competencies={currentCompetencies}
+              completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length}
+            />
             <div className="overview-panels">
               <section id="skills" aria-label="Skills and gaps">
-                <CompetencyRadarCard officerName={currentOfficer.name} cadreRank={currentOfficer.cadreRank} data={currentCompetencies} onTakeQuizForCompetency={handleTakeQuizForCompetency} />
+                <CompetencyRadarCard
+                  officerName={currentOfficer.name}
+                  cadreRank={currentOfficer.cadreRank}
+                  data={currentCompetencies}
+                  onTakeQuizForCompetency={handleTakeQuizForCompetency}
+                />
               </section>
               <section id="learning-plan" aria-label="Learning plan">
                 <CourseRecommendationsList
                   userId={currentOfficer.id}
+                  officer={currentOfficer}
+                  competencies={currentCompetencies}
                   recommendations={recommendations}
+                  defaultShowAll={false}
+                  initialCount={2}
                   onSynced={(recId, nextStatus) => {
-                    setRecommendations((prev) => prev.map((r) => (r.id === recId ? { ...r, status: nextStatus } : r)));
+                    setRecommendations((prev) =>
+                      prev.map((r) => (r.id === recId ? { ...r, status: nextStatus } : r))
+                    );
                   }}
                   onCourseCompleted={handleCourseCompleted}
                   onReassessCompetency={handleTakeQuizForCompetency}
@@ -210,8 +224,15 @@ export default function HomePage() {
             </div>
             <section id="manuals" className="upload-panel" aria-label="Manual ingestion">
               <div className="upload-callout">
-                <span className="upload-callout-icon"><FileUp aria-hidden="true" /></span>
-                <div><h2>Turn a manual into a source-linked quiz</h2><p>PDF, DOCX or TXT <span>·</span> Answers linked to the evidence</p></div>
+                <span className="upload-callout-icon">
+                  <FileUp aria-hidden="true" />
+                </span>
+                <div>
+                  <h2>Turn a manual into a source-linked quiz</h2>
+                  <p>
+                    PDF, DOCX or TXT <span>·</span> Answers linked to the evidence
+                  </p>
+                </div>
                 <button
                   type="button"
                   className="primary-action"
@@ -220,13 +241,197 @@ export default function HomePage() {
                   Upload material
                 </button>
               </div>
-              <details className="inline-ingestion"><summary>Or drop a file and explore preset manuals</summary><DocumentDropzone onDocumentAdded={handleDocumentAdded} /></details>
+              <details className="inline-ingestion">
+                <summary>Or drop a file and explore preset manuals</summary>
+                <DocumentDropzone onDocumentAdded={handleDocumentAdded} />
+              </details>
             </section>
           </>
-        ) : (
-          <><MetricStrip officer={currentOfficer} competencies={currentCompetencies} completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length} /><TdAdminDashboard /></>
-        )}
-        <footer className="workspace-footer">Sample data <span>·</span> iGOT not connected</footer>
+        );
+
+      case "assess":
+        return (
+          <div className="space-y-6">
+            <AssessView
+              competencies={currentCompetencies}
+              officerName={currentOfficer.name}
+              cadreRank={currentOfficer.cadreRank}
+              documents={documents}
+              onStartQuiz={handleAssessStartQuiz}
+            />
+          </div>
+        );
+
+      case "gap-analysis":
+        return (
+          <div className="space-y-6">
+            <GapAnalysisView
+              officer={currentOfficer}
+              competencies={currentCompetencies}
+              officerName={currentOfficer.name}
+              cadreRank={currentOfficer.cadreRank}
+              onTakeQuiz={handleTakeQuizForCompetency}
+              onTakeAnotherQuiz={() => setIsQuizGenOpen(true)}
+              onGoToLearningPath={() => setActiveTab("learning-path")}
+            />
+          </div>
+        );
+
+      case "learning-path":
+        return (
+          <div className="space-y-6">
+            <div className="section-header">
+              <h2>iGOT Karmayogi Learning Path & Curated Courses</h2>
+              <p>Tailored courses aligned to your MoSPI FRAC competency benchmarks.</p>
+            </div>
+            <CourseRecommendationsList
+              userId={currentOfficer.id}
+              officer={currentOfficer}
+              competencies={currentCompetencies}
+              recommendations={recommendations}
+              defaultShowAll={true}
+              initialCount={10}
+              onSynced={(recId, nextStatus) => {
+                setRecommendations((prev) =>
+                  prev.map((r) => (r.id === recId ? { ...r, status: nextStatus } : r))
+                );
+              }}
+              onCourseCompleted={handleCourseCompleted}
+              onReassessCompetency={handleTakeQuizForCompetency}
+            />
+          </div>
+        );
+
+      case "quiz-studio":
+        return (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight text-fg flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Quiz Studio
+                  </h2>
+                  <p className="text-sm text-fg-muted mt-1">
+                    AI-powered diagnostic quiz generator grounded in MoSPI manuals and FRAC competencies.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="primary-action"
+                  onClick={() => setIsQuizGenOpen(true)}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Launch Quiz Generator
+                </button>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {currentCompetencies.map((comp) => (
+                  <div
+                    key={comp.id}
+                    className="flex flex-col justify-between rounded-lg border border-border/80 bg-slate-50/50 p-4 hover:border-primary/40 transition-colors"
+                  >
+                    <div>
+                      <span className="text-[11px] font-mono text-primary font-medium">
+                        {comp.fracCode}
+                      </span>
+                      <h3 className="font-semibold text-sm text-fg mt-1">{comp.label}</h3>
+                      <p className="text-xs text-fg-muted mt-1">
+                        Current: Level {comp.current}/5 · Target: Level {comp.target}/5
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleTakeQuizForCompetency(comp.fracCode)}
+                      className="outline-action mt-4 self-start"
+                    >
+                      <Target className="h-3.5 w-3.5" />
+                      Take 5-Question Quiz
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case "history":
+        return (
+          <div className="space-y-6">
+            <HistoryView
+              competencies={currentCompetencies}
+              recommendations={recommendations}
+              officerName={currentOfficer.name}
+              cadreRank={currentOfficer.cadreRank}
+            />
+          </div>
+        );
+
+      case "admin":
+        return (
+          <div className="space-y-6">
+            <MetricStrip
+              officer={currentOfficer}
+              competencies={currentCompetencies}
+              completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length}
+            />
+            <TdAdminDashboard />
+          </div>
+        );
+
+      case "profile":
+        return (
+          <div className="space-y-6">
+            <ProfileView
+              officer={currentOfficer}
+              competencies={currentCompetencies}
+              onSelectOfficer={handleSelectOfficer}
+            />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="workspace-shell">
+      <Navbar
+        officer={currentOfficer}
+        competencies={currentCompetencies}
+        recommendations={recommendations}
+        documents={documents}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onStartAssessment={() => setIsQuizGenOpen(true)}
+        onOpenDocUpload={() => setIsDocUploadOpen(true)}
+        onTakeQuiz={handleTakeQuizForCompetency}
+      />
+
+      <main id="dashboard" className="workspace-main">
+        <CadreProfileBar
+          currentOfficer={currentOfficer}
+          onSelectOfficer={handleSelectOfficer}
+          competencies={currentCompetencies}
+          activeView={activeTab === "admin" ? "TD_ADMIN" : "OFFICER"}
+          onChangeView={(view) => {
+            if (view === "TD_ADMIN") {
+              setActiveTab("admin");
+            } else {
+              setActiveTab("dashboard");
+            }
+          }}
+          onOpenQuizGenerator={() => setIsQuizGenOpen(true)}
+          onOpenDocUpload={() => setIsDocUploadOpen(true)}
+        />
+
+        {renderTabContent()}
+
+        <footer className="workspace-footer">
+          Sample data <span>·</span> iGOT not connected
+        </footer>
       </main>
 
       {/* Modals */}

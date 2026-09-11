@@ -33,7 +33,6 @@ export function CompetencyRadarCard({
   onTakeQuizForCompetency,
   className,
 }: CompetencyRadarCardProps) {
-  const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [focusedCode, setFocusedCode] = useState<string | null>(null);
 
   const chartData = useMemo(
@@ -59,7 +58,7 @@ export function CompetencyRadarCard({
       <div className="panel-heading"><div><h2>Your competency map</h2><p>Assessment estimate</p></div></div>
       <div className="competency-bars">
         {chartData.slice(0, 3).map((item) => (
-          <button key={item.fracCode} className="competency-bar-row" onClick={() => { setFocusedCode(item.fracCode); setEvidenceOpen(true); }} aria-label={            item.label + ": assessed " + item.current + " of " + PROFICIENCY_MAX + ", role target " + item.target + ". View gap evidence."
+          <button key={item.fracCode} className="competency-bar-row" onClick={() => { setFocusedCode(item.fracCode); }} aria-label={            item.label + ": assessed " + item.current + " of " + PROFICIENCY_MAX + ", role target " + item.target + ". View gap evidence."
           }>
             <span className="competency-bar-label" title={item.label}>{item.label}</span>
             <span className="competency-track"><span className="competency-fill" style={{ width: (item.current / PROFICIENCY_MAX * 100) + "%" }} /><span className="competency-target" style={{ left: (item.target / PROFICIENCY_MAX * 100) + "%" }} /></span>
@@ -68,8 +67,7 @@ export function CompetencyRadarCard({
         ))}
       </div>
       <div className="competency-legend"><span><i />Assessed</span><span><i />Role target</span></div>
-      <button className="text-action evidence-toggle" onClick={() => setEvidenceOpen(!evidenceOpen)} aria-expanded={evidenceOpen} aria-controls="competency-evidence">{evidenceOpen ? "Hide gap evidence" : "See gap evidence"}<ArrowRight aria-hidden="true" /></button>
-      <div id="competency-evidence" hidden={!evidenceOpen} className="competency-evidence">
+      <div id="competency-evidence" className="competency-evidence">
       <div>
         <CardHeader className="pb-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -96,7 +94,6 @@ export function CompetencyRadarCard({
 
         <CardContent className="pt-2">
           <div className="relative h-[300px] w-full">
-            {evidenceOpen && (
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={chartData} outerRadius="65%" margin={{ top: 24, right: 20, bottom: 24, left: 20 }}>
                 <defs>
@@ -189,7 +186,6 @@ export function CompetencyRadarCard({
                 />
               </RadarChart>
             </ResponsiveContainer>
-            )}
           </div>
 
           {/* Competency selector */}

@@ -40,7 +40,7 @@ export function QuizGeneratorModal({
 }: QuizGeneratorModalProps) {
   const [selectedDocId, setSelectedDocId] = useState(documents[0]?.id || "doc_plfs_2024");
   const [selectedCompetency, setSelectedCompetency] = useState(competencies[0]?.fracCode || "FN-STAT-014");
-  const [questionCount] = useState(3);
+  const [questionCount, setQuestionCount] = useState(5);
   const [difficulty, setDifficulty] = useState(cadreRank === "DD" ? 5 : cadreRank === "SO" ? 4 : 3);
   const [bloomLevel, setBloomLevel] = useState("APPLY");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -48,9 +48,17 @@ export function QuizGeneratorModal({
   // Auto-sync initial selection when modal opens or documents update
   useEffect(() => {
     if (isOpen && documents.length > 0) {
-      const currentDoc = documents.find((d) => d.id === selectedDocId) || documents[0];
-      setSelectedDocId(currentDoc.id);
-      const mappedFrac = getCompetencyForDocument(currentDoc);
+      // Prioritize uploaded document if present at top
+      const topDoc = documents[0];
+      const isTopDocUploaded =
+        topDoc && !["doc_plfs_2024", "doc_cpi_manual", "doc_nas_sna", "doc_asi_manual"].includes(topDoc.id);
+
+      const targetDoc = isTopDocUploaded
+        ? topDoc
+        : documents.find((d) => d.id === selectedDocId) || documents[0];
+
+      setSelectedDocId(targetDoc.id);
+      const mappedFrac = getCompetencyForDocument(targetDoc);
       if (competencies.some((c) => c.fracCode === mappedFrac)) {
         setSelectedCompetency(mappedFrac);
       }
@@ -68,15 +76,27 @@ export function QuizGeneratorModal({
     }
   };
 
+  const selectedDoc = documents.find((d) => d.id === selectedDocId);
+  const selectedDocCompetencyFrac = selectedDoc ? getCompetencyForDocument(selectedDoc) : "";
+  const selectedDocCompetency = competencies.find((c) => c.fracCode === selectedDocCompetencyFrac);
+
   if (!isOpen) return null;
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     await new Promise((r) => setTimeout(r, 600));
     setIsGenerating(false);
+
+    const doc = documents.find((d) => d.id === selectedDocId);
+    const mappedFrac = doc ? getCompetencyForDocument(doc) : selectedCompetency;
+    const finalCompetency =
+      doc && selectedCompetency === "FN-STAT-014" && mappedFrac !== "FN-STAT-014"
+        ? mappedFrac
+        : selectedCompetency;
+
     onStartQuiz({
       documentId: selectedDocId,
-      competencyFracCode: selectedCompetency,
+      competencyFracCode: finalCompetency,
       questionCount,
       difficulty,
       bloomLevel,
@@ -136,6 +156,11 @@ export function QuizGeneratorModal({
                 </option>
               ))}
             </select>
+            {selectedDoc && (
+              <p className="mt-2 text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+                Mapped Competency: {selectedDocCompetency?.label || selectedDocCompetencyFrac} ({selectedDocCompetencyFrac})
+              </p>
+            )}
           </div>
 
           <div>
@@ -182,26 +207,52 @@ export function QuizGeneratorModal({
                   );
                 })}
               </div>
-              <p className="mt-2 text-[11px] text-fg-muted">Cadre benchmark: {cadreRank} standard</p>
+              <p className="mt-2 text-[11px] text-fg-muted">
+                {difficulty === 1
+                  ? "Foundational — definitions & terminology"
+                  : difficulty === 2
+                  ? "Basic operations — standard concepts"
+                  : difficulty === 3
+                  ? "Intermediate — JSO benchmark"
+                  : difficulty === 4
+                  ? "Advanced — SO cadre analytics"
+                  : "Expert — DD / Director methodology"}
+              </p>
             </fieldset>
 
             <div>
-              <label htmlFor="quiz-bloom" className={labelClass}>
-                Bloom&apos;s cognitive level
+              <label htmlFor="quiz-count" className={labelClass}>
+                Number of questions
               </label>
               <select
-                id="quiz-bloom"
-                value={bloomLevel}
-                onChange={(e) => setBloomLevel(e.target.value)}
+                id="quiz-count"
+                value={questionCount}
+                onChange={(e) => setQuestionCount(Number(e.target.value))}
                 className={selectClass}
               >
-                <option value="REMEMBER">Remember — factual recall of guidelines</option>
-                <option value="UNDERSTAND">Understand — conceptual interpretation</option>
-                <option value="APPLY">Apply — operational sample calculations</option>
-                <option value="ANALYZE">Analyse — defect and bias detection</option>
-                <option value="EVALUATE">Evaluate — methodology critique</option>
+                <option value={3}>3 questions (~6 min)</option>
+                <option value={5}>5 questions (~10 min)</option>
+                <option value={10}>10 questions (~20 min)</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="quiz-bloom" className={labelClass}>
+              Bloom&apos;s cognitive level
+            </label>
+            <select
+              id="quiz-bloom"
+              value={bloomLevel}
+              onChange={(e) => setBloomLevel(e.target.value)}
+              className={selectClass}
+            >
+              <option value="REMEMBER">Remember — factual recall of guidelines</option>
+              <option value="UNDERSTAND">Understand — conceptual interpretation</option>
+              <option value="APPLY">Apply — operational sample calculations</option>
+              <option value="ANALYZE">Analyse — defect and bias detection</option>
+              <option value="EVALUATE">Evaluate — methodology critique</option>
+            </select>
           </div>
 
           <dl className="flex items-center justify-between gap-6 border-t border-border pt-4 text-xs text-fg-muted">

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Clock, Check, ArrowRight, ArrowLeft, BookOpen, AlertCircle, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Clock, Check, ArrowRight, ArrowLeft, AlertCircle, Lock, Sparkles } from "lucide-react";
 import { AssessmentQuestion } from "@/lib/data-service";
 import { cn } from "@/lib/utils";
-import { CitationAccordion, CitationItem } from "@/components/ui/citation-accordion";
+import { CitationAccordion } from "@/components/ui/citation-accordion";
 
 interface QuizTakerModalProps {
   isOpen: boolean;
@@ -46,11 +46,48 @@ export function QuizTakerModal({
   cadreRank,
   onAssessmentCompleted,
 }: QuizTakerModalProps) {
-  // Modal State Machine: "in-progress" vs "completed"
   const [status, setStatus] = useState<"in-progress" | "completed">("in-progress");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, "A" | "B" | "C" | "D">>({});
-  const [timeLeftSeconds, setTimeLeftSeconds] = useState(360); // 6 minutes default
+  const [timeLeftSeconds, setTimeLeftSeconds] = useState(360);
+  const [aiExplanations, setAiExplanations] = useState<Record<string, { simpleExplanation: string; misconceptionAnalysis?: string; sourceGroundedEvidence?: string; keyTakeaway?: string; provider?: string }>>({});
+  const [loadingExplanationId, setLoadingExplanationId] = useState<string | null>(null);
+
+  const handleFetchExplanation = async (q: AssessmentQuestion) => {
+    if (aiExplanations[q.id]) return;
+    setLoadingExplanationId(q.id);
+    try {
+      const res = await fetch("/api/ai/explain-answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: q,
+          chosenChoiceId: selectedAnswers[q.id] || "None",
+          officerName,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAiExplanations((prev) => ({
+          ...prev,
+          [q.id]: data,
+        }));
+      }
+    } catch (err) {
+      console.warn("AI explanation fetch failed:", err);
+    } finally {
+      setLoadingExplanationId(null);
+    }
+  };
+
+  // Pre-fetch explanations for questions when assessment is completed
+  useEffect(() => {
+    if (status === "completed" && questions && questions.length > 0) {
+      questions.forEach((q) => {
+        handleFetchExplanation(q);
+      });
+    }
+  }, [status, questions]);
 
   // Reset all states cleanly whenever modal opens with fresh questions
   useEffect(() => {
@@ -58,10 +95,39 @@ export function QuizTakerModal({
       setStatus("in-progress");
       setCurrentIndex(0);
       setSelectedAnswers({});
-      // 6 minutes countdown (360 seconds) or 2 minutes per question if larger pool
       setTimeLeftSeconds(Math.max(questions.length * 90, 360));
     }
   }, [isOpen, questions]);
+
+  // Block browser navigation / tab close while quiz is in progress
+  const handleBeforeUnload = useCallback(
+    (e: BeforeUnloadEvent) => {
+      if (status === "in-progress") {
+        e.preventDefault();
+        e.returnValue = "You have an assessment in progress. Your answers will be lost if you leave.";
+        return e.returnValue;
+      }
+    },
+    [status]
+  );
+
+  useEffect(() => {
+    if (isOpen && status === "in-progress") {
+      window.addEventListener("beforeunload", handleBeforeUnload);
+      // Block Escape key
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape" && status === "in-progress") {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown, true);
+      return () => {
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+        window.removeEventListener("keydown", handleKeyDown, true);
+      };
+    }
+  }, [isOpen, status, handleBeforeUnload]);
 
   // Real-time timer countdown during "in-progress" state
   useEffect(() => {
@@ -86,6 +152,7 @@ export function QuizTakerModal({
   const currentQ = questions[currentIndex] || questions[0];
   const totalQ = questions.length;
   const answeredCount = Object.keys(selectedAnswers).length;
+  const allAnswered = answeredCount === totalQ;
 
   const handleSelectAnswer = (choiceId: "A" | "B" | "C" | "D") => {
     if (status === "completed") return;
@@ -136,91 +203,80 @@ export function QuizTakerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#123158]/25 p-4 backdrop-blur-md"
+      className="quiz-fullscreen-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby="quiz-taker-title"
     >
-      <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-surface text-fg shadow-2xl">
+      <div className="quiz-fullscreen-container">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-border bg-surface px-6 py-4">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-fg-muted">
-                {cadreRank} Baseline · FRAC Diagnostic Quiz
-              </span>
-              <span className="h-1 w-1 rounded-full bg-fg-muted" />
-              <span className="font-mono text-[11px] text-primary">
+        <div className="quiz-fs-header">
+          <div className="quiz-fs-header-left">
+            <div className="quiz-fs-meta">
+              <span className="quiz-fs-badge-cadre">{cadreRank} Baseline</span>
+              <span className="quiz-fs-separator">·</span>
+              <span className="quiz-fs-label">FRAC Diagnostic Quiz</span>
+              <span className="quiz-fs-separator">·</span>
+              <span className={status === "in-progress" ? "quiz-fs-status-active" : "quiz-fs-status-done"}>
                 {status === "in-progress" ? "In Progress" : "Evaluation Complete"}
               </span>
             </div>
-            <h2 id="quiz-taker-title" className="text-lg font-semibold tracking-tight text-fg">
+            <h2 id="quiz-taker-title" className="quiz-fs-title">
               {currentQ.competencyLabel || "Statistical Capacity Assessment"}
             </h2>
-            <p className="text-xs text-fg-muted">
-              Assessing officer <span className="font-medium text-fg">{officerName}</span>
+            <p className="quiz-fs-officer">
+              Assessing officer <strong>{officerName}</strong>
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="quiz-fs-header-right">
             {status === "in-progress" && (
-              <div
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-xs font-semibold tabular-nums transition-colors duration-300",
-                  timeLeftSeconds <= 60
-                    ? "border-red-200 bg-red-50 text-red-700"
-                    : "border-border bg-surface text-fg-muted"
-                )}
-                aria-live="polite"
-              >
-                <Clock className="h-3.5 w-3.5 text-primary" aria-hidden />
-                <span>{formatTime(timeLeftSeconds)}</span>
-              </div>
+              <>
+                <div className="quiz-fs-lock-badge">
+                  <Lock className="h-3.5 w-3.5" aria-hidden />
+                  <span>Assessment Locked</span>
+                </div>
+                <div
+                  className={cn(
+                    "quiz-fs-timer",
+                    timeLeftSeconds <= 60 && "quiz-fs-timer-urgent"
+                  )}
+                  aria-live="polite"
+                >
+                  <Clock className="h-3.5 w-3.5" aria-hidden />
+                  <span>{formatTime(timeLeftSeconds)}</span>
+                </div>
+              </>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className={cn(
-                "rounded-md p-1.5 text-fg-muted transition-colors duration-200 hover:bg-bg hover:text-fg active:scale-95",
-                focusRing
-              )}
-            >
-              <X className="h-4 w-4" aria-hidden />
-            </button>
           </div>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="quiz-fs-body">
           {status === "in-progress" ? (
-            /* Question-Taking State */
-            <div className="flex flex-col gap-6">
-              {/* Question Navigation & Cadre Tagging Bar */}
-              <div className="flex flex-col gap-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-fg">
+            <div className="quiz-fs-question-area">
+              {/* Progress bar & question meta */}
+              <div className="quiz-fs-progress-section">
+                <div className="quiz-fs-progress-meta">
+                  <div className="quiz-fs-progress-left">
+                    <span className="quiz-fs-q-counter">
                       Question {currentIndex + 1} of {totalQ}
                     </span>
-                    <span className="rounded border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-primary">
-                      {cadreRank} Benchmark
-                    </span>
+                    <span className="quiz-fs-cadre-pill">{cadreRank} Benchmark</span>
                   </div>
-
-                  <div className="flex items-center gap-3 font-mono text-[11px] text-fg-muted">
+                  <div className="quiz-fs-progress-right">
                     <span>Bloom: {currentQ.bloomLevel.toLowerCase()}</span>
                     <span>·</span>
                     <span>Difficulty: {currentQ.difficulty}/5</span>
                     <span>·</span>
-                    <span className={answeredCount === totalQ ? "text-emerald-700" : "text-amber-700"}>
+                    <span className={allAnswered ? "quiz-fs-answered-complete" : "quiz-fs-answered-pending"}>
                       Answered: {answeredCount}/{totalQ}
                     </span>
                   </div>
                 </div>
 
                 {/* Clickable Progress Segment Bar */}
-                <div className="flex items-center gap-1.5 pt-1">
+                <div className="quiz-fs-segments">
                   {questions.map((q, i) => {
                     const isAnswered = Boolean(selectedAnswers[q.id]);
                     const isCurrent = i === currentIndex;
@@ -229,14 +285,11 @@ export function QuizTakerModal({
                         key={q.id}
                         type="button"
                         onClick={() => setCurrentIndex(i)}
-                        title={`Jump to Question ${i + 1} ${isAnswered ? "(Answered)" : "(Unanswered)"}`}
+                        title={`Question ${i + 1} ${isAnswered ? "(Answered)" : "(Unanswered)"}`}
                         className={cn(
-                          "h-2 flex-1 rounded-full transition-all duration-200",
-                          isCurrent
-                            ? "bg-primary ring-2 ring-primary/40"
-                            : isAnswered
-                            ? "bg-fg-muted hover:bg-fg-muted"
-                            : "bg-bg hover:bg-bg"
+                          "quiz-fs-segment",
+                          isCurrent && "quiz-fs-segment-current",
+                          isAnswered && !isCurrent && "quiz-fs-segment-answered"
                         )}
                       />
                     );
@@ -245,14 +298,12 @@ export function QuizTakerModal({
               </div>
 
               {/* Question Stem */}
-              <div className="rounded-lg border border-border bg-surface p-4">
-                <p className="text-base sm:text-lg font-medium leading-relaxed tracking-tight text-fg text-pretty">
-                  {currentQ.stem}
-                </p>
+              <div className="quiz-fs-stem">
+                <p>{currentQ.stem}</p>
               </div>
 
               {/* Selectable Radio Options */}
-              <div className="flex flex-col gap-2.5" role="radiogroup" aria-label="Answer choices">
+              <div className="quiz-fs-choices" role="radiogroup" aria-label="Answer choices">
                 {currentQ.choices.map((choice) => {
                   const isSelected = selectedAnswers[currentQ.id] === choice.id;
                   return (
@@ -263,68 +314,50 @@ export function QuizTakerModal({
                       aria-checked={isSelected}
                       onClick={() => handleSelectAnswer(choice.id)}
                       className={cn(
-                        "group flex w-full items-start gap-3.5 rounded-lg border p-4 text-left transition-all duration-200 active:scale-[0.995]",
-                        focusRing,
-                        isSelected
-                          ? "border-primary bg-primary/10 text-fg shadow-sm shadow-primary/20"
-                          : "border-border bg-surface text-fg-muted hover:border-border hover:bg-bg hover:text-fg"
+                        "quiz-fs-choice",
+                        isSelected && "quiz-fs-choice-selected"
                       )}
                     >
-                      <span
-                        className={cn(
-                          "flex h-6 w-6 shrink-0 items-center justify-center rounded-md font-mono text-xs font-semibold transition-colors duration-200",
-                          isSelected
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "bg-bg text-fg-muted group-hover:bg-bg group-hover:text-fg"
-                        )}
-                      >
+                      <span className={cn("quiz-fs-choice-letter", isSelected && "quiz-fs-choice-letter-selected")}>
                         {choice.id}
                       </span>
-                      <span className="text-sm leading-relaxed text-pretty pt-0.5">
-                        {choice.text}
-                      </span>
+                      <span className="quiz-fs-choice-text">{choice.text}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Unanswered reminder banner if approaching final question */}
-              {currentIndex === totalQ - 1 && answeredCount < totalQ && (
-                <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs text-amber-700">
+              {/* Unanswered reminder */}
+              {currentIndex === totalQ - 1 && !allAnswered && (
+                <div className="quiz-fs-warning">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>
-                    You have {totalQ - answeredCount} unanswered question{totalQ - answeredCount > 1 ? "s" : ""}. You can review previous questions or submit now.
+                    You have {totalQ - answeredCount} unanswered question{totalQ - answeredCount > 1 ? "s" : ""}.
+                    Review before submitting.
                   </span>
                 </div>
               )}
             </div>
           ) : (
-            /* Results & Review State (Rendered only after explicit submission) */
-            <div className="flex flex-col gap-8">
+            /* Results & Review State */
+            <div className="quiz-fs-results">
               {/* Score Overview */}
-              <div className="grid grid-cols-1 gap-6 border-b border-border pb-8 sm:grid-cols-12 sm:items-end">
-                <div className="sm:col-span-5">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-fg-muted">
-                    Diagnostic Score
-                  </p>
-                  <p className="mt-2 text-6xl font-semibold leading-none tracking-tighter text-fg">
+              <div className="quiz-fs-score-section">
+                <div className="quiz-fs-score-left">
+                  <p className="quiz-fs-score-label">Diagnostic Score</p>
+                  <p className="quiz-fs-score-number">
                     {scorePercent}
-                    <span className="text-3xl text-fg-muted">%</span>
+                    <span className="quiz-fs-score-percent">%</span>
                   </p>
-                  <p className="mt-2 text-sm text-fg-muted">
+                  <p className="quiz-fs-score-detail">
                     {correctCount} of {totalQ} correct answers
                   </p>
                 </div>
-                <div className="sm:col-span-7">
-                  <h3
-                    className={cn(
-                      "text-xl font-semibold tracking-tight text-balance",
-                      passed ? "text-emerald-700" : "text-amber-700"
-                    )}
-                  >
+                <div className="quiz-fs-score-right">
+                  <h3 className={passed ? "quiz-fs-result-pass" : "quiz-fs-result-fail"}>
                     {passed ? "Cadre Benchmark Achieved" : "Competency Gap Identified"}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-fg-muted text-pretty">
+                  <p className="quiz-fs-result-desc">
                     {passed
                       ? `Officer proficiency will increment by +1 level toward the ${cadreRank} baseline upon saving.`
                       : "This competency remains tagged as an active gap. Recommended iGOT Karmayogi modules have been aligned below."}
@@ -333,40 +366,69 @@ export function QuizTakerModal({
               </div>
 
               {/* Detailed Breakdown with Citations */}
-              <div className="flex flex-col gap-4">
-                <h4 className="text-xs font-medium uppercase tracking-[0.12em] text-fg-muted">
-                  Question Review & Handbook Grounding
-                </h4>
-                <ol className="flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
+              <div className="quiz-fs-review">
+                <h4 className="quiz-fs-review-heading">Question Review & Handbook Grounding</h4>
+                <ol className="quiz-fs-review-list">
                   {questions.map((q, idx) => {
                     const officerChoice = selectedAnswers[q.id];
                     const isCorrect = officerChoice === q.correctChoice;
 
                     return (
-                      <li key={q.id} className="flex flex-col gap-3 p-5">
-                        <div className="flex items-start justify-between gap-4">
-                          <p className="text-sm font-medium leading-snug text-fg text-pretty">
-                            <span className="mr-2 font-mono text-xs text-fg-muted">
+                      <li key={q.id} className="quiz-fs-review-item">
+                        <div className="quiz-fs-review-top">
+                          <p className="quiz-fs-review-stem">
+                            <span className="quiz-fs-review-num">
                               {String(idx + 1).padStart(2, "0")}
                             </span>
                             {q.stem}
                           </p>
-                          <span
-                            className={cn(
-                              "shrink-0 rounded px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.12em]",
-                              isCorrect
-                                ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                : "border border-red-200 bg-red-50 text-red-700"
-                            )}
-                          >
+                          <span className={isCorrect ? "quiz-fs-badge-correct" : "quiz-fs-badge-wrong"}>
                             {isCorrect ? "Correct" : `Incorrect · Chose ${officerChoice || "None"}`}
                           </span>
                         </div>
 
-                        <p className="text-xs leading-relaxed text-fg-muted text-pretty">
-                          <strong className="font-semibold text-fg">Answer {q.correctChoice}. </strong>
+                        <p className="quiz-fs-review-rationale">
+                          <strong>Answer {q.correctChoice}. </strong>
                           {q.rationale}
                         </p>
+
+                        {/* AI Grounded Answer Explanation */}
+                        {aiExplanations[q.id] ? (
+                          <div className="mt-2.5 rounded-lg border border-primary/25 bg-slate-50/80 p-3 text-xs">
+                            <div className="flex items-center gap-1.5 font-semibold text-primary text-[11px] mb-1.5">
+                              <Sparkles className="h-3.5 w-3.5 text-primary" />
+                              <span>AI Answer Analysis & Grounding</span>
+                              <span className="text-[10px] text-fg-muted font-mono ml-auto">
+                                {aiExplanations[q.id].provider}
+                              </span>
+                            </div>
+                            <p className="text-[11px] leading-relaxed text-fg">
+                              {aiExplanations[q.id].simpleExplanation}
+                            </p>
+                            {aiExplanations[q.id].misconceptionAnalysis && (
+                              <p className="mt-1.5 text-[11px] text-amber-900 bg-amber-50 p-2 rounded border border-amber-200">
+                                <strong>Misconception Check: </strong>
+                                {aiExplanations[q.id].misconceptionAnalysis}
+                              </p>
+                            )}
+                            {aiExplanations[q.id].keyTakeaway && (
+                              <div className="mt-1.5 flex items-start gap-1 text-[10px] font-medium text-teal-800">
+                                <Check className="h-3 w-3 shrink-0 mt-0.5" />
+                                <span>{aiExplanations[q.id].keyTakeaway}</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleFetchExplanation(q)}
+                            disabled={loadingExplanationId === q.id}
+                            className="mt-2 inline-flex items-center gap-1.5 rounded border border-primary/30 bg-primary/5 px-2.5 py-1 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            <Sparkles className={cn("h-3 w-3", loadingExplanationId === q.id && "animate-spin")} />
+                            <span>{loadingExplanationId === q.id ? "Analyzing with AI…" : "Get AI Grounded Explanation"}</span>
+                          </button>
+                        )}
 
                         <div className="mt-1">
                           <CitationAccordion
@@ -394,7 +456,7 @@ export function QuizTakerModal({
         </div>
 
         {/* Footer Navigation */}
-        <div className="flex items-center justify-between border-t border-border bg-surface px-6 py-4">
+        <div className="quiz-fs-footer">
           {status === "in-progress" ? (
             <>
               <button
@@ -412,7 +474,9 @@ export function QuizTakerModal({
                   <button
                     type="button"
                     onClick={handleSubmitAssessment}
+                    disabled={!allAnswered}
                     className={submitBtn}
+                    title={allAnswered ? "Submit your assessment" : "Answer all questions before submitting"}
                   >
                     <span>Submit Assessment</span>
                     <Check className="h-3.5 w-3.5" aria-hidden />

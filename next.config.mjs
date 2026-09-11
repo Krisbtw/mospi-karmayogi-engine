@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverActions: { bodySizeLimit: "15mb" }, // headroom for uploaded methodology PDFs
+    serverActions: { bodySizeLimit: "25mb" },
+    serverComponentsExternalPackages: ["pdf-parse"],
   },
 };
 
 export default nextConfig;
+

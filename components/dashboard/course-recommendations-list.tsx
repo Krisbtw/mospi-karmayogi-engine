@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ExternalLink, RefreshCw, Check, BookOpen, ArrowRight } from "lucide-react";
-import { IgotCourse } from "@/lib/data-service";
+import { ExternalLink, RefreshCw, Check, BookOpen, ArrowRight, Sparkles } from "lucide-react";
+import { IgotCourse, Officer, CompetencyItem } from "@/lib/data-service";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,11 @@ import { SovereignVerificationTag } from "@/components/ui/sovereign-verification
 
 interface CourseRecommendationsListProps {
   userId: string;
+  officer?: Officer;
+  competencies?: CompetencyItem[];
   recommendations: IgotCourse[];
+  defaultShowAll?: boolean;
+  initialCount?: number;
   onSynced?: (id: string, nextStatus: IgotCourse["status"]) => void;
   onCourseCompleted?: (competencyFracCode: string, courseTitle: string) => void;
   onReassessCompetency?: (fracCode: string) => void;
@@ -29,21 +33,96 @@ const STATUS_LABEL: Record<IgotCourse["status"], string> = {
 
 export function CourseRecommendationsList({
   userId,
+  officer,
+  competencies = [],
   recommendations,
+  defaultShowAll = false,
+  initialCount = 2,
   onSynced,
   onCourseCompleted,
   onReassessCompetency,
   className,
 }: CourseRecommendationsListProps) {
   const [items, setItems] = useState<IgotCourse[]>(recommendations);
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(defaultShowAll);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [completedSuccess, setCompletedSuccess] = useState<string | null>(null);
+  const [aiRationales, setAiRationales] = useState<Record<string, { personalizedRationale: string; estimatedImpact?: string; provider?: string }>>({});
   const [, startTransition] = useTransition();
+
+  const displayedItems = showAll ? items : items.slice(0, initialCount);
 
   useEffect(() => {
     setItems(recommendations);
   }, [recommendations]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const activeOfficer = officer || {
+      id: userId,
+      name: "Anjali Sharma",
+      email: "a.sharma@mospi.gov.in",
+      designation: "Junior Statistical Officer",
+      cadreRank: "JSO" as const,
+      region: "Maharashtra (West Zone)",
+      division: "FOD",
+      igotUserId: "igot_usr_99812",
+      avatar: "AS",
+    };
+
+    async function fetchInsightsSequentially() {
+      for (const rec of displayedItems) {
+        if (isCancelled) break;
+        if (aiRationales[rec.id]) continue;
+
+        const comp = competencies.find((c) => c.fracCode === rec.competencyFracCode) || {
+          id: rec.competencyFracCode,
+          fracCode: rec.competencyFracCode,
+          label: rec.competencyLabel,
+          category: "DOMAIN" as const,
+          description: rec.competencyLabel,
+          current: 2,
+          target: 3,
+          lastAssessed: "Baseline",
+        };
+
+        try {
+          const res = await fetch("/api/ai/recommendation-insight", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              officer: activeOfficer,
+              course: rec,
+              competency: comp,
+            }),
+          });
+          if (res.ok && !isCancelled) {
+            const data = await res.json();
+            setAiRationales((prev) => ({
+              ...prev,
+              [rec.id]: {
+                personalizedRationale: data.personalizedRationale,
+                estimatedImpact: data.estimatedImpact,
+                provider: data.provider,
+              },
+            }));
+          }
+        } catch {
+          // Silently continue
+        }
+
+        // Pacing delay (300ms) to ensure requests never burst past LLM rate limits
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    }
+
+    fetchInsightsSequentially();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [displayedItems.length, officer?.id, competencies.length]);
 
   async function handleSync(rec: IgotCourse) {
     setSyncingId(rec.id);
@@ -116,7 +195,7 @@ export function CourseRecommendationsList({
       </AnimatePresence>
 
       <ol id="recommended-courses" className={cn("course-list grid grid-cols-1 gap-4", showAll && "is-expanded")} aria-label="Recommended courses">
-        {items.map((rec) => {
+        {displayedItems.map((rec) => {
           const isDone = rec.status === "COMPLETED";
           const isEnrolled = rec.status === "ENROLLED" || rec.status === "IN_PROGRESS";
           const isSyncing = syncingId === rec.id;
@@ -249,6 +328,28 @@ export function CourseRecommendationsList({
                     </div>
                   </div>
 
+                  {/* AI Personalized Learning Recommendation Rationale */}
+                  {aiRationales[rec.id] && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
+                      <div className="flex items-center gap-1.5 font-semibold text-primary text-[11px] mb-1">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        <span>AI Learning Recommendation Rationale</span>
+                        <span className="text-[10px] text-fg-muted font-mono ml-auto">
+                          {aiRationales[rec.id].provider}
+                        </span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-fg">
+                        {aiRationales[rec.id].personalizedRationale}
+                      </p>
+                      {aiRationales[rec.id].estimatedImpact && (
+                        <div className="mt-1.5 flex items-center gap-1 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
+                          <Check className="h-3 w-3" />
+                          <span>{aiRationales[rec.id].estimatedImpact}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* iGOT Micro-Curriculum Stepper / Journey Rail */}
                   <div className="border-t border-border/80 pt-3">
                     <JourneyStepper steps={journeySteps} />
@@ -259,7 +360,24 @@ export function CourseRecommendationsList({
           );
         })}
       </ol>
-      <div className="course-list-footer"><span>{items.filter((item) => item.status === "COMPLETED").length}/{items.length} certified</span><button onClick={() => setShowAll(!showAll)} aria-expanded={showAll} aria-controls="recommended-courses">{showAll ? "Show fewer courses" : `View all ${items.length} courses`} <span aria-hidden="true">→</span></button></div>
+      <div className="course-list-footer">
+        <span>
+          {items.filter((item) => item.status === "COMPLETED").length}/{items.length} certified
+        </span>
+        {items.length > initialCount && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            aria-expanded={showAll}
+            aria-controls="recommended-courses"
+            className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+          >
+            {showAll
+              ? "Show fewer courses"
+              : `Show more courses (${items.length - initialCount} more)`}
+            <span aria-hidden="true">{showAll ? "↑" : "↓"}</span>
+          </button>
+        )}
+      </div>
     </Card>
   );
 }

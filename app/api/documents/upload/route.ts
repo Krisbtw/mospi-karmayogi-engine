@@ -5,6 +5,8 @@ import {
   StoredChunk,
   addStoredDocument,
   addStoredChunks,
+  registerDocumentQuestions,
+  getCompetencyForDocument,
 } from "@/lib/data-service";
 import { prisma } from "@/lib/prisma";
 
@@ -12,22 +14,13 @@ export const runtime = "nodejs";
 
 async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string; pages: number }> {
   try {
-    // Dynamically import pdf-parse to safely handle v1 function or v2 PDFParse class
-    const pdfModule: any = await import("pdf-parse");
-    if (pdfModule.PDFParse) {
-      const parser = new pdfModule.PDFParse({ data: buffer });
-      const res = await parser.getText();
-      await parser.destroy?.();
+    const pdfParse = require("pdf-parse");
+    const data = await pdfParse(buffer);
+    if (data && typeof data.text === "string" && data.text.trim().length > 0) {
       return {
-        text: res?.text || "",
-        pages: res?.total || res?.pages?.length || 1,
+        text: data.text,
+        pages: data.numpages || 1,
       };
-    } else if (typeof pdfModule.default === "function") {
-      const data = await pdfModule.default(buffer);
-      return { text: data.text || "", pages: data.numpages || 1 };
-    } else if (typeof pdfModule === "function") {
-      const data = await (pdfModule as any)(buffer);
-      return { text: data.text || "", pages: data.numpages || 1 };
     }
   } catch (err) {
     console.warn("PDF extraction warning, using buffer text decode:", err);
@@ -42,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     if (contentType.includes("application/json")) {
       const body = await req.json();
-      const { title, sourceType, summary, pageCount, rawText } = body;
+      const { title, sourceType: incomingSourceType, summary, pageCount, rawText } = body;
 
       const docId = `doc_${Date.now()}`;
       let chunksCount = 12;
@@ -63,10 +56,22 @@ export async function POST(req: NextRequest) {
         addStoredChunks(docId, storedChunks);
       }
 
+      let detectedType: DocumentItem["sourceType"] = incomingSourceType || "NATIONAL_ACCOUNTS_MANUAL";
+      const lower = (title || "").toLowerCase();
+      if (lower.includes("plfs") || lower.includes("labour") || lower.includes("labor")) {
+        detectedType = "PLFS_HANDBOOK";
+      } else if (lower.includes("cpi") || lower.includes("price") || lower.includes("inflation")) {
+        detectedType = "CPI_METHODOLOGY";
+      } else if (lower.includes("asi") || lower.includes("factory") || lower.includes("industr")) {
+        detectedType = "ASI_METHODOLOGY";
+      } else if (lower.includes("national") || lower.includes("account") || lower.includes("gdp") || lower.includes("gva") || lower.includes("sdp") || lower.includes("ddp")) {
+        detectedType = "NATIONAL_ACCOUNTS_MANUAL";
+      }
+
       const newDoc: DocumentItem = {
         id: docId,
         title: title || "Uploaded MoSPI Statistical Methodology",
-        sourceType: sourceType || "CIRCULAR",
+        sourceType: detectedType,
         pageCount: finalPages,
         fileSizeKb: Math.round(finalPages * 22),
         chunkCount: chunksCount,
@@ -78,6 +83,7 @@ export async function POST(req: NextRequest) {
       };
 
       addStoredDocument(newDoc);
+      registerDocumentQuestions(newDoc);
       return NextResponse.json({ success: true, document: newDoc }, { status: 201 });
     }
 
@@ -86,7 +92,19 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
     const title =
       (formData.get("title") as string) || (file ? file.name : "Custom MoSPI Document.pdf");
-    const sourceType = (formData.get("sourceType") as DocumentItem["sourceType"]) || "OTHER";
+    const rawSourceType = formData.get("sourceType") as DocumentItem["sourceType"] | null;
+
+    let sourceType: DocumentItem["sourceType"] = rawSourceType || "NATIONAL_ACCOUNTS_MANUAL";
+    const lower = title.toLowerCase();
+    if (lower.includes("plfs") || lower.includes("labour") || lower.includes("labor")) {
+      sourceType = "PLFS_HANDBOOK";
+    } else if (lower.includes("cpi") || lower.includes("price") || lower.includes("inflation")) {
+      sourceType = "CPI_METHODOLOGY";
+    } else if (lower.includes("asi") || lower.includes("factory") || lower.includes("industr")) {
+      sourceType = "ASI_METHODOLOGY";
+    } else if (lower.includes("national") || lower.includes("account") || lower.includes("gdp") || lower.includes("gva") || lower.includes("sdp") || lower.includes("ddp")) {
+      sourceType = "NATIONAL_ACCOUNTS_MANUAL";
+    }
 
     const docId = `doc_${Date.now()}`;
     let extractedText = "";
@@ -113,7 +131,7 @@ export async function POST(req: NextRequest) {
     // Run real semantic chunking over extracted text
     const rawChunks = chunkDocument(
       extractedText ||
-        `${title}: Indian Official Statistical System guidelines on sampling, estimation, and quality assurance.`
+        `${title}: Indian Official Statistical System guidelines on sampling, estimation, and national accounts.`
     );
 
     const storedChunks: StoredChunk[] = rawChunks.map((c) => ({
@@ -139,6 +157,7 @@ export async function POST(req: NextRequest) {
     };
 
     addStoredDocument(newDoc);
+    registerDocumentQuestions(newDoc);
 
     // Attempt Prisma persistence in background if PostgreSQL is reachable
     try {

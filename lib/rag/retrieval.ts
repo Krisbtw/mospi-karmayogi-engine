@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { embedTexts } from "./embeddings";
-import { getStoredChunks, getAllStoredChunks, StoredChunk } from "@/lib/data-service";
+import {
+  getStoredChunks,
+  getAllStoredChunks,
+  getStoredDocument,
+  getCompetencyForDocument,
+  StoredChunk,
+} from "@/lib/data-service";
 
 export interface RetrievedChunk {
   id: string;
@@ -10,6 +16,15 @@ export interface RetrievedChunk {
 }
 
 const TOP_K = 12;
+
+const COMPETENCY_KEYWORDS: Record<string, string> = {
+  "FN-STAT-014": "survey sampling design PLFS FSU stratum UFS rotation labour force employment NSSO household sample",
+  "DM-PRICE-002": "price statistics CPI WPI inflation index basket Jevons Laspeyres price relatives elementary aggregate market",
+  "FN-STAT-021": "national income accounting accounts GDP GVA SDP DDP gross value added basic prices factor cost intermediate consumption CFC perpetual inventory method supra-regional GFCF capital formation output production approach income approach expenditure approach",
+  "FN-STAT-033": "R Python survey processing data analysis statistical programming cleaning script tabulation validation microdata",
+  "BH-INTEGRITY-001": "data integrity ethics confidentiality official statistics code of conduct compliance privacy statutory",
+  "FN-STAT-042": "industrial production indexing ASI IIP factory sector manufacturing census sample capital value added",
+};
 
 /**
  * Calculates cosine similarity between two vector embeddings:
@@ -43,7 +58,12 @@ function semanticRelevanceScore(query: string, content: string, headings: string
   for (const term of queryTerms) {
     if (targetText.includes(term)) matches += 1;
   }
-  return matches / Math.max(1, queryTerms.length);
+  const headingText = headings.join(" ").toLowerCase();
+  let headingBoost = 0;
+  for (const term of queryTerms) {
+    if (headingText.includes(term)) headingBoost += 0.5;
+  }
+  return Math.min(1, (matches + headingBoost) / Math.max(1, queryTerms.length));
 }
 
 /**
@@ -59,7 +79,16 @@ export async function retrieveRelevantChunks(params: {
   documentId: string;
   competencyFracCodes: string[];
 }): Promise<RetrievedChunk[]> {
-  const query = `Statistical methodology content relevant to: ${params.competencyFracCodes.join(", ")}`;
+  const doc = getStoredDocument(params.documentId);
+  const mappedDocFrac = doc ? getCompetencyForDocument(doc) : "";
+  const primaryFrac =
+    (mappedDocFrac && mappedDocFrac !== "FN-STAT-014")
+      ? mappedDocFrac
+      : (params.competencyFracCodes[0] || mappedDocFrac || "FN-STAT-014");
+
+  const keywords = COMPETENCY_KEYWORDS[primaryFrac] || "";
+  const docTitlePart = doc?.title || "";
+  const query = `Statistical methodology ${primaryFrac} ${keywords} ${docTitlePart}`;
 
   // 1. Primary: PostgreSQL pgvector query
   try {
@@ -95,10 +124,42 @@ export async function retrieveRelevantChunks(params: {
     // Database or external embedding API offline: fallback seamlessly
   }
 
-  // 2. In-Memory Vector Search Fallback
+  // 2. In-Memory Vector Search Fallback (strictly scoped to document, never cross-contaminating)
   let chunks = getStoredChunks(params.documentId);
+
+  // If documentId has no chunks (e.g. documentId was a virtual ID or preloaded alias), fall back only to the same topic
   if (chunks.length === 0) {
-    chunks = getAllStoredChunks();
+    const lowerDocTitle = (doc?.title || params.documentId).toLowerCase();
+    if (
+      primaryFrac === "FN-STAT-021" ||
+      lowerDocTitle.includes("national") ||
+      lowerDocTitle.includes("account") ||
+      lowerDocTitle.includes("sna") ||
+      lowerDocTitle.includes("gdp") ||
+      lowerDocTitle.includes("gva")
+    ) {
+      chunks = getStoredChunks("doc_nas_sna");
+    } else if (
+      primaryFrac === "DM-PRICE-002" ||
+      lowerDocTitle.includes("cpi") ||
+      lowerDocTitle.includes("price") ||
+      lowerDocTitle.includes("inflation")
+    ) {
+      chunks = getStoredChunks("doc_cpi_manual");
+    } else if (
+      primaryFrac === "FN-STAT-042" ||
+      lowerDocTitle.includes("asi") ||
+      lowerDocTitle.includes("industry") ||
+      lowerDocTitle.includes("factory")
+    ) {
+      chunks = getStoredChunks("doc_asi_manual");
+    } else if (
+      primaryFrac === "FN-STAT-014" ||
+      lowerDocTitle.includes("plfs") ||
+      lowerDocTitle.includes("sampling")
+    ) {
+      chunks = getStoredChunks("doc_plfs_2024");
+    }
   }
 
   if (chunks.length === 0) {

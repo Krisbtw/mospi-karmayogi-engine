@@ -1609,4 +1609,189 @@
     -webkit-backdrop-filter: blur(16px) saturate(160%);
     border: 1px solid rgb(var(--color-border) / 0.6);
   }
+
+  /* ====================================================================
+     ENHANCED PROFILE VIEW — SIH Competency & Experience Profile
+     ==================================================================== */
+
+  /* Identity header card */
+  .profile-identity-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    background: var(--color-surface-token, #fff);
+    border: 1px solid rgb(var(--color-border));
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  @media (min-width: 768px) {
+    .profile-identity-card { flex-direction: row; align-items: center; justify-content: space-between; }
+  }
+
+  .profile-identity-left { display: flex; align-items: flex-start; gap: 1rem; }
+  .profile-avatar-xl {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, #007d83 0%, #0e4f88 100%);
+    color: #fff; font-size: 1.25rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; letter-spacing: 0.04em;
+    box-shadow: 0 2px 10px rgba(0,125,131,0.3);
+  }
+  .profile-name { font-size: 1.1rem; font-weight: 700; color: rgb(var(--color-fg)); margin: 0; }
+  .profile-desig { font-size: 0.82rem; color: rgb(var(--color-fg-muted)); margin: 0.15rem 0 0; }
+  .profile-org { font-size: 0.75rem; color: rgb(var(--color-fg-muted)); margin: 0.1rem 0 0; }
+  .profile-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+
+  .profile-exp-badge {
+    display: inline-block; padding: 0.15rem 0.6rem;
+    border-radius: 9999px; border: 1px solid;
+    font-size: 0.68rem; font-weight: 600; letter-spacing: 0.02em;
+  }
+  .profile-rank-badge {
+    display: inline-block; padding: 0.15rem 0.6rem;
+    border-radius: 9999px; border: 1px solid #0e4f88;
+    background: #e8f0fa; color: #0e4f88;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+  }
+
+  .profile-kpi-strip { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .profile-kpi { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; min-width: 5rem; }
+  .profile-kpi-num { font-size: 1.4rem; font-weight: 700; color: rgb(var(--color-fg)); line-height: 1; font-variant-numeric: tabular-nums; }
+  .profile-kpi-label { font-size: 0.62rem; color: rgb(var(--color-fg-muted)); text-align: center; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  /* Section cards */
+  .profile-details-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem; }
+  @media (min-width: 768px) { .profile-details-grid { grid-template-columns: 1fr 1fr; } }
+
+  .profile-section-card {
+    background: rgb(var(--color-surface) / 1);
+    border: 1px solid rgb(var(--color-border));
+    border-radius: 0.875rem; padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 1rem;
+  }
+  .profile-section-title {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.8rem; font-weight: 700; color: rgb(var(--color-fg));
+    margin: 0 0 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  /* Definition list */
+  .profile-dl { display: flex; flex-direction: column; gap: 0; }
+  .profile-dl-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 0.75rem; padding: 0.45rem 0;
+    border-bottom: 1px solid rgb(var(--color-border) / 0.5);
+  }
+  .profile-dl-row:last-child { border-bottom: none; }
+  .profile-dl-row dt { font-size: 0.71rem; color: rgb(var(--color-fg-muted)); font-weight: 500; min-width: 6rem; flex-shrink: 0; }
+  .profile-dl-row dd { font-size: 0.75rem; color: rgb(var(--color-fg)); font-weight: 500; text-align: right; }
+
+  .profile-assignment-box {
+    margin-top: 0.75rem; padding: 0.625rem 0.875rem;
+    border-radius: 0.5rem; background: #f0f9f9;
+    border: 1px solid #b2dede;
+  }
+  .profile-assignment-label { font-size: 0.62rem; font-weight: 600; color: #007d83; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.15rem; }
+  .profile-assignment-value { font-size: 0.78rem; font-weight: 600; color: rgb(var(--color-fg)); margin: 0; }
+
+  /* Education */
+  .profile-edu-box {
+    display: flex; gap: 0.75rem; align-items: flex-start;
+    background: #f9f5ff; border: 1px solid #d8b4fe;
+    border-radius: 0.625rem; padding: 0.75rem;
+  }
+  .profile-edu-degree { font-size: 0.82rem; font-weight: 600; color: rgb(var(--color-fg)); margin: 0; }
+  .profile-edu-sub { font-size: 0.68rem; color: rgb(var(--color-fg-muted)); margin: 0.15rem 0 0; }
+
+  /* Training history */
+  .profile-training-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .profile-training-item {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem;
+    padding: 0.5rem 0.75rem; border-radius: 0.5rem;
+    border: 1px solid rgb(var(--color-border) / 0.7);
+    background: rgb(var(--color-bg));
+  }
+  .profile-training-left { display: flex; gap: 0.5rem; align-items: flex-start; min-width: 0; }
+  .profile-training-title { font-size: 0.75rem; font-weight: 600; color: rgb(var(--color-fg)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .profile-training-meta { font-size: 0.65rem; color: rgb(var(--color-fg-muted)); margin: 0.1rem 0 0; }
+  .profile-training-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; flex-shrink: 0; }
+  .profile-training-code { font-size: 0.62rem; font-family: monospace; color: rgb(var(--color-primary)); font-weight: 600; }
+  .profile-training-level { font-size: 0.65rem; color: #16a34a; font-weight: 600; }
+
+  /* Categorized competencies */
+  .profile-cat-group { margin-bottom: 1rem; }
+  .profile-cat-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 0.5rem; }
+  .profile-cat-legend {
+    display: inline-block; padding: 0.1rem 0.5rem;
+    border-radius: 9999px; border: 1px solid;
+    font-size: 0.6rem; font-weight: 600;
+  }
+
+  /* Target marker on competency bar */
+  .profile-comp-target-marker {
+    position: absolute; top: -3px; bottom: -3px;
+    width: 2px; background: #1e3a5f; border-radius: 1px; transform: translateX(-50%);
+    z-index: 2;
+  }
+  .profile-comp-bar { position: relative; flex: 1; height: 8px; background: rgb(var(--color-bg)); border-radius: 4px; overflow: visible; }
+  .profile-comp-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; position: absolute; top: 0; left: 0; }
+  .profile-comp-legend-note { font-size: 0.62rem; color: rgb(var(--color-fg-muted)); margin-top: 0.75rem; }
+
+  /* ====================================================================
+     TRAINING EFFECTIVENESS — History View
+     ==================================================================== */
+
+  .effectiveness-panel {
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-border));
+    border-radius: 0.875rem; padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .effectiveness-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+  .effectiveness-header h3 { font-size: 0.9rem; font-weight: 700; color: rgb(var(--color-fg)); margin: 0; }
+  .effectiveness-cohort-tag {
+    margin-left: auto; font-size: 0.65rem; font-weight: 600;
+    background: #e2f4f1; color: #007d83; padding: 0.15rem 0.5rem;
+    border-radius: 9999px; border: 1px solid #b2dede;
+  }
+  .effectiveness-sub { font-size: 0.72rem; color: rgb(var(--color-fg-muted)); margin: 0 0 1rem; }
+
+  .effectiveness-table-wrapper { overflow-x: auto; }
+  .effectiveness-table {
+    width: 100%; border-collapse: collapse; font-size: 0.72rem; min-width: 680px;
+  }
+  .effectiveness-table th {
+    padding: 0.5rem 0.75rem; text-align: left;
+    background: #f8fafc; border-bottom: 1px solid rgb(var(--color-border));
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: rgb(var(--color-fg-muted));
+  }
+  .effectiveness-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid rgb(var(--color-border) / 0.5); vertical-align: middle; }
+  .effectiveness-table tr:last-child td { border-bottom: none; }
+  .effectiveness-table tr:hover td { background: #f9fafb; }
+
+  /* Category pills in effectiveness table */
+  .eff-cat-pill { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 9999px; font-size: 0.6rem; font-weight: 600; }
+  .eff-cat-stat { background: #eff6ff; color: #1d4ed8; }
+  .eff-cat-tech { background: #f5f3ff; color: #6d28d9; }
+  .eff-cat-dg   { background: #f0fdfa; color: #0f766e; }
+  .eff-cat-beh  { background: #fffbeb; color: #b45309; }
+
+  /* Before / After level pills */
+  .eff-level-pill { display: inline-flex; align-items: center; justify-content: center; padding: 0.2rem 0.5rem; border-radius: 0.375rem; font-size: 0.7rem; font-weight: 700; font-family: monospace; }
+  .eff-before { background: #fee2e2; color: #b91c1c; }
+  .eff-after  { background: #dcfce7; color: #15803d; }
+
+  /* Delta indicators */
+  .eff-delta-pos  { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 700; color: #16a34a; }
+  .eff-delta-neg  { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 700; color: #dc2626; }
+  .eff-delta-neutral { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 600; color: rgb(var(--color-fg-muted)); }
+
+  .history-timeline-section { margin-top: 1.5rem; }
 }

@@ -1,12 +1,15 @@
 "use client";
 
 import { CompetencyItem, IgotCourse } from "@/lib/data-service";
+import { TRAINING_EFFECTIVENESS_DATA, COHORT_EFFECTIVENESS_SUMMARY } from "@/lib/training-effectiveness";
+import { TrendingUp, TrendingDown, Minus, BookOpen, ClipboardList, Sparkles } from "lucide-react";
 
 interface HistoryViewProps {
   competencies: CompetencyItem[];
   recommendations: IgotCourse[];
   officerName: string;
   cadreRank: string;
+  officerId?: string;
 }
 
 interface HistoryEntry {
@@ -19,11 +22,10 @@ interface HistoryEntry {
   impact: string;
 }
 
-export function HistoryView({ competencies, recommendations, officerName, cadreRank }: HistoryViewProps) {
+export function HistoryView({ competencies, recommendations, officerName, cadreRank, officerId }: HistoryViewProps) {
   // Build history from existing data
   const entries: HistoryEntry[] = [];
 
-  // Add assessment history from competencies
   competencies.forEach((c) => {
     entries.push({
       id: `assess-${c.fracCode}`,
@@ -39,7 +41,6 @@ export function HistoryView({ competencies, recommendations, officerName, cadreR
     });
   });
 
-  // Add completed courses
   recommendations
     .filter((r) => r.status === "COMPLETED")
     .forEach((r) => {
@@ -66,12 +67,22 @@ export function HistoryView({ competencies, recommendations, officerName, cadreR
     quiz: "AI Quiz",
   };
 
+  // Training effectiveness records for this officer
+  const effectivenessRecords = TRAINING_EFFECTIVENESS_DATA.filter(
+    (r) => r.officerId === officerId
+  );
+
+  const totalImprovement = effectivenessRecords.reduce((s, r) => s + r.improvement, 0);
+  const avgGain = effectivenessRecords.length > 0
+    ? (totalImprovement / effectivenessRecords.length).toFixed(1)
+    : "0";
+
   return (
     <div className="history-view">
       <div className="history-header">
-        <h2>Competency History</h2>
+        <h2>Competency History & Training Effectiveness</h2>
         <p>
-          {officerName} · {cadreRank} · Track of all assessments, courses, and competency changes.
+          {officerName} · {cadreRank} · Track of all assessments, courses, and competency before/after comparisons.
         </p>
       </div>
 
@@ -93,32 +104,119 @@ export function HistoryView({ competencies, recommendations, officerName, cadreR
           <span className="history-stat-label">Targets Met</span>
         </div>
         <div className="history-stat">
-          <span className="history-stat-num">{entries.length}</span>
-          <span className="history-stat-label">Total Events</span>
+          <span className="history-stat-num">{effectivenessRecords.length}</span>
+          <span className="history-stat-label">Trainings Tracked</span>
+        </div>
+        <div className="history-stat">
+          <span className="history-stat-num" style={{ color: "#16a34a" }}>+{avgGain}</span>
+          <span className="history-stat-label">Avg Level Gain</span>
         </div>
       </div>
 
-      <div className="history-timeline">
-        {entries.length > 0 ? (
-          entries.map((entry) => (
-            <div key={entry.id} className="history-entry">
-              <div className="history-entry-icon">{typeIcons[entry.type]}</div>
-              <div className="history-entry-content">
-                <div className="history-entry-top">
-                  <span className={`history-type-badge history-type-${entry.type}`}>
-                    {typeLabels[entry.type]}
-                  </span>
-                  <span className="history-date">{entry.date}</span>
+      {/* ── Training Effectiveness: Before / After ───────────────────── */}
+      {effectivenessRecords.length > 0 && (
+        <div className="effectiveness-panel">
+          <div className="effectiveness-header">
+            <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <h3>Training Effectiveness — Before vs. After</h3>
+            <span className="effectiveness-cohort-tag">
+              {effectivenessRecords[0]?.cohort}
+            </span>
+          </div>
+          <p className="effectiveness-sub">
+            Validated proficiency levels captured before enrollment and after assessment completion.
+          </p>
+
+          <div className="effectiveness-table-wrapper">
+            <table className="effectiveness-table">
+              <thead>
+                <tr>
+                  <th>Competency</th>
+                  <th>Category</th>
+                  <th>Training / Course</th>
+                  <th>Provider</th>
+                  <th>Before</th>
+                  <th>After</th>
+                  <th>Change</th>
+                  <th>Assessed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {effectivenessRecords.map((r, i) => {
+                  const delta = r.improvement;
+                  return (
+                    <tr key={i}>
+                      <td className="font-medium text-fg">{r.competencyLabel}</td>
+                      <td>
+                        <span className={`eff-cat-pill ${
+                          r.category === "Statistical" ? "eff-cat-stat" :
+                          r.category === "Technical" ? "eff-cat-tech" :
+                          r.category === "Digital Governance" ? "eff-cat-dg" :
+                          "eff-cat-beh"
+                        }`}>{r.category}</span>
+                      </td>
+                      <td className="text-fg-muted">{r.trainingCourse}</td>
+                      <td className="text-fg-muted font-mono text-[11px]">{r.provider}</td>
+                      <td>
+                        <div className="eff-level-pill eff-before">{r.beforeLevel}/5</div>
+                      </td>
+                      <td>
+                        <div className="eff-level-pill eff-after">{r.afterLevel}/5</div>
+                      </td>
+                      <td>
+                        {delta > 0 ? (
+                          <span className="eff-delta-pos">
+                            <TrendingUp className="h-3.5 w-3.5" /> +{delta}
+                          </span>
+                        ) : delta < 0 ? (
+                          <span className="eff-delta-neg">
+                            <TrendingDown className="h-3.5 w-3.5" /> {delta}
+                          </span>
+                        ) : (
+                          <span className="eff-delta-neutral">
+                            <Minus className="h-3.5 w-3.5" /> 0
+                          </span>
+                        )}
+                      </td>
+                      <td className="text-fg-muted text-[11px]">{r.assessedDate}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Timeline ───────────────────────────────────────────────────── */}
+      <div className="history-timeline-section">
+        <div className="flex items-center gap-2 mb-4">
+          <ClipboardList className="h-4 w-4 text-fg-muted" />
+          <h3 className="text-sm font-semibold text-fg">Assessment & Course Event Log</h3>
+        </div>
+
+        <div className="history-timeline">
+          {entries.length > 0 ? (
+            entries.map((entry) => (
+              <div key={entry.id} className="history-entry">
+                <div className="history-entry-icon">{typeIcons[entry.type]}</div>
+                <div className="history-entry-content">
+                  <div className="history-entry-top">
+                    <span className={`history-type-badge history-type-${entry.type}`}>
+                      {typeLabels[entry.type]}
+                    </span>
+                    <span className="history-date">{entry.date}</span>
+                  </div>
+                  <h4>{entry.title}</h4>
+                  <p className="history-detail">{entry.detail}</p>
+                  <p className="history-impact">{entry.impact}</p>
                 </div>
-                <h4>{entry.title}</h4>
-                <p className="history-detail">{entry.detail}</p>
-                <p className="history-impact">{entry.impact}</p>
               </div>
-            </div>
-          ))
-        ) : (
-          <p className="history-empty">No competency history yet.</p>
-        )}
+            ))
+          ) : (
+            <p className="history-empty">No competency history yet.</p>
+          )}
+        </div>
       </div>
     </div>
   );

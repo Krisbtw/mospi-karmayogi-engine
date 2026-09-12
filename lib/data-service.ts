@@ -1,3 +1,11 @@
+export interface PreviousTraining {
+  courseTitle: string;
+  provider: string;
+  completedDate: string;
+  competencyCode: string;
+  levelAchieved: number;
+}
+
 export interface Officer {
   id: string;
   name: string;
@@ -8,13 +16,22 @@ export interface Officer {
   division: string;
   igotUserId: string;
   avatar: string;
+  // SIH-required extended profile fields
+  department: string;
+  jobRole: string;
+  currentAssignment: string;
+  educationQualification: string;
+  experienceLevel: "0-1" | "1-3" | "3-5" | "5+";
+  experienceYears: number;
+  previousTraining: PreviousTraining[];
+  joinDate: string;
 }
 
 export interface CompetencyItem {
   id: string;
   fracCode: string;
   label: string;
-  category: "DOMAIN" | "FUNCTIONAL" | "BEHAVIORAL";
+  category: "DOMAIN" | "FUNCTIONAL" | "BEHAVIORAL" | "TECHNICAL" | "DIGITAL_GOV";
   description: string;
   current: number; // 1-5
   target: number;  // 1-5
@@ -66,6 +83,65 @@ export interface AssessmentQuestion {
   sourceSnippet: string;
 }
 
+// ──────────────────────────────────────────────
+// Role-Based Competency Framework  (Job Role → Experience Level → FRAC Target)
+// ──────────────────────────────────────────────
+export const ROLE_COMPETENCY_FRAMEWORK: Record<string, {
+  competencies: string[];
+  targetLevels: Record<string, Record<string, number>>;
+}> = {
+  "Junior Statistical Officer": {
+    competencies: ["FN-STAT-014","DM-PRICE-002","FN-STAT-021","FN-STAT-033","BH-INTEGRITY-001","FN-STAT-042","TC-DATAVIZ-001","TC-SQL-001","DG-EGOV-001","TC-GIS-001","BH-COMM-001","BH-LEAD-001"],
+    targetLevels: {
+      "0-1": { "FN-STAT-014":2, "DM-PRICE-002":2, "FN-STAT-021":2, "FN-STAT-033":2, "BH-INTEGRITY-001":3, "FN-STAT-042":2, "TC-DATAVIZ-001":2, "TC-SQL-001":2, "DG-EGOV-001":2, "TC-GIS-001":1, "BH-COMM-001":2, "BH-LEAD-001":1 },
+      "1-3": { "FN-STAT-014":3, "DM-PRICE-002":3, "FN-STAT-021":3, "FN-STAT-033":3, "BH-INTEGRITY-001":4, "FN-STAT-042":3, "TC-DATAVIZ-001":3, "TC-SQL-001":3, "DG-EGOV-001":3, "TC-GIS-001":2, "BH-COMM-001":3, "BH-LEAD-001":2 },
+      "3-5": { "FN-STAT-014":4, "DM-PRICE-002":4, "FN-STAT-021":4, "FN-STAT-033":4, "BH-INTEGRITY-001":5, "FN-STAT-042":4, "TC-DATAVIZ-001":4, "TC-SQL-001":4, "DG-EGOV-001":3, "TC-GIS-001":3, "BH-COMM-001":4, "BH-LEAD-001":3 },
+      "5+":  { "FN-STAT-014":5, "DM-PRICE-002":5, "FN-STAT-021":5, "FN-STAT-033":5, "BH-INTEGRITY-001":5, "FN-STAT-042":5, "TC-DATAVIZ-001":5, "TC-SQL-001":5, "DG-EGOV-001":4, "TC-GIS-001":4, "BH-COMM-001":5, "BH-LEAD-001":4 },
+    },
+  },
+  "Senior Statistical Officer": {
+    competencies: ["FN-STAT-014","DM-PRICE-002","FN-STAT-021","FN-STAT-033","BH-INTEGRITY-001","FN-STAT-042","TC-DATAVIZ-001","TC-SQL-001","DG-EGOV-001","TC-GIS-001","BH-COMM-001","BH-LEAD-001"],
+    targetLevels: {
+      "0-1": { "FN-STAT-014":3, "DM-PRICE-002":3, "FN-STAT-021":3, "FN-STAT-033":3, "BH-INTEGRITY-001":4, "FN-STAT-042":3, "TC-DATAVIZ-001":3, "TC-SQL-001":3, "DG-EGOV-001":3, "TC-GIS-001":2, "BH-COMM-001":3, "BH-LEAD-001":3 },
+      "1-3": { "FN-STAT-014":4, "DM-PRICE-002":4, "FN-STAT-021":4, "FN-STAT-033":4, "BH-INTEGRITY-001":5, "FN-STAT-042":4, "TC-DATAVIZ-001":4, "TC-SQL-001":4, "DG-EGOV-001":4, "TC-GIS-001":3, "BH-COMM-001":4, "BH-LEAD-001":3 },
+      "3-5": { "FN-STAT-014":5, "DM-PRICE-002":4, "FN-STAT-021":5, "FN-STAT-033":5, "BH-INTEGRITY-001":5, "FN-STAT-042":5, "TC-DATAVIZ-001":5, "TC-SQL-001":5, "DG-EGOV-001":4, "TC-GIS-001":4, "BH-COMM-001":5, "BH-LEAD-001":4 },
+      "5+":  { "FN-STAT-014":5, "DM-PRICE-002":5, "FN-STAT-021":5, "FN-STAT-033":5, "BH-INTEGRITY-001":5, "FN-STAT-042":5, "TC-DATAVIZ-001":5, "TC-SQL-001":5, "DG-EGOV-001":5, "TC-GIS-001":5, "BH-COMM-001":5, "BH-LEAD-001":5 },
+    },
+  },
+  "Deputy Director": {
+    competencies: ["FN-STAT-014","DM-PRICE-002","FN-STAT-021","FN-STAT-033","BH-INTEGRITY-001","FN-STAT-042","TC-DATAVIZ-001","TC-SQL-001","DG-EGOV-001","TC-GIS-001","BH-COMM-001","BH-LEAD-001"],
+    targetLevels: {
+      "0-1": { "FN-STAT-014":4, "DM-PRICE-002":4, "FN-STAT-021":4, "FN-STAT-033":4, "BH-INTEGRITY-001":5, "FN-STAT-042":4, "TC-DATAVIZ-001":4, "TC-SQL-001":4, "DG-EGOV-001":4, "TC-GIS-001":3, "BH-COMM-001":4, "BH-LEAD-001":4 },
+      "1-3": { "FN-STAT-014":5, "DM-PRICE-002":5, "FN-STAT-021":5, "FN-STAT-033":5, "BH-INTEGRITY-001":5, "FN-STAT-042":5, "TC-DATAVIZ-001":5, "TC-SQL-001":5, "DG-EGOV-001":5, "TC-GIS-001":4, "BH-COMM-001":5, "BH-LEAD-001":5 },
+      "3-5": { "FN-STAT-014":5, "DM-PRICE-002":5, "FN-STAT-021":5, "FN-STAT-033":5, "BH-INTEGRITY-001":5, "FN-STAT-042":5, "TC-DATAVIZ-001":5, "TC-SQL-001":5, "DG-EGOV-001":5, "TC-GIS-001":5, "BH-COMM-001":5, "BH-LEAD-001":5 },
+      "5+":  { "FN-STAT-014":5, "DM-PRICE-002":5, "FN-STAT-021":5, "FN-STAT-033":5, "BH-INTEGRITY-001":5, "FN-STAT-042":5, "TC-DATAVIZ-001":5, "TC-SQL-001":5, "DG-EGOV-001":5, "TC-GIS-001":5, "BH-COMM-001":5, "BH-LEAD-001":5 },
+    },
+  },
+};
+
+// NSSTA TPAC (Training Programme Advisory Committee) Programs
+export interface TpacProgram {
+  id: string;
+  title: string;
+  duration: string;
+  targetRoles: string[];
+  competencies: string[];
+  location: string;
+  nextBatch: string;
+  mode: "IN_PERSON" | "ONLINE" | "HYBRID";
+}
+
+export const NSSTA_TPAC_PROGRAMS: TpacProgram[] = [
+  { id: "tpac_001", title: "Statistical Methods for Survey Design & Sampling", duration: "5 Days", targetRoles: ["JSO", "SO"], competencies: ["FN-STAT-014"], location: "NSSTA Greater Noida", nextBatch: "Oct 2026", mode: "IN_PERSON" },
+  { id: "tpac_002", title: "Advanced CPI/WPI Compilation & Quality Assurance", duration: "3 Days", targetRoles: ["SO", "DD"], competencies: ["DM-PRICE-002"], location: "CSO Headquarters New Delhi", nextBatch: "Nov 2026", mode: "HYBRID" },
+  { id: "tpac_003", title: "R & Python for Official Statistical Data Processing", duration: "10 Days", targetRoles: ["JSO", "SO"], competencies: ["FN-STAT-033", "TC-SQL-001"], location: "NSSTA Greater Noida", nextBatch: "Oct 2026", mode: "IN_PERSON" },
+  { id: "tpac_004", title: "National Accounts: SNA 2008 Implementation & GVA", duration: "5 Days", targetRoles: ["SO", "DD"], competencies: ["FN-STAT-021"], location: "NAD Conference Hall, New Delhi", nextBatch: "Dec 2026", mode: "IN_PERSON" },
+  { id: "tpac_005", title: "Data Visualization & Dashboard Design for MoSPI", duration: "3 Days", targetRoles: ["JSO", "SO", "DD"], competencies: ["TC-DATAVIZ-001"], location: "Online (NSSTA LMS)", nextBatch: "Sep 2026", mode: "ONLINE" },
+  { id: "tpac_006", title: "GIS & Geospatial Analysis for Statistical Operations", duration: "5 Days", targetRoles: ["JSO", "SO"], competencies: ["TC-GIS-001"], location: "NSSTA Greater Noida", nextBatch: "Jan 2027", mode: "IN_PERSON" },
+  { id: "tpac_007", title: "e-Governance & Digital India Platforms for Officers", duration: "2 Days", targetRoles: ["JSO", "SO", "DD"], competencies: ["DG-EGOV-001"], location: "Online (NSSTA LMS)", nextBatch: "Oct 2026", mode: "ONLINE" },
+  { id: "tpac_008", title: "Statistical Leadership & Institutional Communication", duration: "3 Days", targetRoles: ["SO", "DD"], competencies: ["BH-LEAD-001", "BH-COMM-001"], location: "LBSNAA Mussoorie", nextBatch: "Nov 2026", mode: "IN_PERSON" },
+];
+
 // Pre-seeded Demo Officers
 export const DEMO_OFFICERS: Officer[] = [
   {
@@ -78,6 +154,18 @@ export const DEMO_OFFICERS: Officer[] = [
     division: "FOD (Field Operations Division)",
     igotUserId: "igot_usr_99812",
     avatar: "AS",
+    department: "Ministry of Statistics & Programme Implementation",
+    jobRole: "Field Enumerator & Data Processor",
+    currentAssignment: "PLFS Round 15 — Maharashtra (West Zone)",
+    educationQualification: "M.Sc. Statistics, Savitribai Phule Pune University",
+    experienceLevel: "1-3",
+    experienceYears: 2,
+    previousTraining: [
+      { courseTitle: "NSSO Field Enumeration Basics", provider: "NSSTA", completedDate: "Jan 2025", competencyCode: "FN-STAT-014", levelAchieved: 2 },
+      { courseTitle: "Data Entry & Validation Protocols", provider: "FOD Training Cell", completedDate: "Mar 2025", competencyCode: "FN-STAT-033", levelAchieved: 3 },
+      { courseTitle: "Statistical Ethics & Confidentiality", provider: "NSSTA", completedDate: "Jun 2025", competencyCode: "BH-INTEGRITY-001", levelAchieved: 3 },
+    ],
+    joinDate: "Jul 2024",
   },
   {
     id: "user_so_delhi",
@@ -89,6 +177,20 @@ export const DEMO_OFFICERS: Officer[] = [
     division: "NAD (National Accounts Division)",
     igotUserId: "igot_usr_44102",
     avatar: "RV",
+    department: "Ministry of Statistics & Programme Implementation",
+    jobRole: "National Accounts Analyst & Survey Supervisor",
+    currentAssignment: "GDP Estimation — NAD Q2 FY2027",
+    educationQualification: "M.A. Economics, Delhi School of Economics",
+    experienceLevel: "3-5",
+    experienceYears: 4,
+    previousTraining: [
+      { courseTitle: "NSSO Multistage Sampling", provider: "SDRD", completedDate: "Aug 2023", competencyCode: "FN-STAT-014", levelAchieved: 4 },
+      { courseTitle: "SNA 2008 GVA Compilation", provider: "NSSTA", completedDate: "Feb 2024", competencyCode: "FN-STAT-021", levelAchieved: 3 },
+      { courseTitle: "R for Official Statistical Data", provider: "DQAD", completedDate: "Nov 2024", competencyCode: "FN-STAT-033", levelAchieved: 3 },
+      { courseTitle: "CPI Advanced Methods", provider: "NSSTA", completedDate: "May 2025", competencyCode: "DM-PRICE-002", levelAchieved: 4 },
+      { courseTitle: "Data Visualization Workshop", provider: "NSSTA", completedDate: "Jul 2025", competencyCode: "TC-DATAVIZ-001", levelAchieved: 3 },
+    ],
+    joinDate: "Apr 2022",
   },
   {
     id: "user_dd_kolkata",
@@ -100,6 +202,21 @@ export const DEMO_OFFICERS: Officer[] = [
     division: "ESD (Economic Statistics Division)",
     igotUserId: "igot_usr_11209",
     avatar: "SI",
+    department: "Ministry of Statistics & Programme Implementation",
+    jobRole: "Division Head & Policy Analyst",
+    currentAssignment: "Annual Survey of Industries (ASI) — Eastern Zone Supervision",
+    educationQualification: "Ph.D. Applied Statistics, ISI Kolkata",
+    experienceLevel: "5+",
+    experienceYears: 12,
+    previousTraining: [
+      { courseTitle: "NSSO Advanced Sampling Theory", provider: "ISI Kolkata", completedDate: "Mar 2018", competencyCode: "FN-STAT-014", levelAchieved: 5 },
+      { courseTitle: "SNA 2008 Full Implementation", provider: "NSSTA", completedDate: "Jul 2019", competencyCode: "FN-STAT-021", levelAchieved: 5 },
+      { courseTitle: "Python for Microdata Analysis", provider: "DQAD", completedDate: "Jan 2022", competencyCode: "FN-STAT-033", levelAchieved: 4 },
+      { courseTitle: "Statistical Leadership Programme", provider: "LBSNAA", completedDate: "Nov 2023", competencyCode: "BH-LEAD-001", levelAchieved: 4 },
+      { courseTitle: "GIS for Statistical Operations", provider: "NSSTA", completedDate: "Apr 2024", competencyCode: "TC-GIS-001", levelAchieved: 3 },
+      { courseTitle: "e-Governance Digital India", provider: "DeitY", completedDate: "Sep 2025", competencyCode: "DG-EGOV-001", levelAchieved: 4 },
+    ],
+    joinDate: "Aug 2014",
   },
 ];
 
@@ -131,193 +248,52 @@ export const CADRE_BASELINES: Record<"JSO" | "SO" | "DD", Record<string, number>
   },
 };
 
-// Initial officer proficiencies
+// ──────────────────────────────────────────────
+// Initial officer proficiencies — 12 competencies per officer
+// spanning Statistical, Technical, Digital Governance & Behavioural categories
+// ──────────────────────────────────────────────
 export const INITIAL_OFFICER_COMPETENCIES: Record<string, CompetencyItem[]> = {
   user_jso_pune: [
-    {
-      id: "c1",
-      fracCode: "FN-STAT-014",
-      label: "Survey Sampling Design",
-      category: "FUNCTIONAL",
-      description: "NSSO Stratified Multistage Sampling & Sample Allocation (FOD)",
-      current: 3,
-      target: 4,
-      lastAssessed: "12 Aug 2026",
-    },
-    {
-      id: "c2",
-      fracCode: "DM-PRICE-002",
-      label: "Price Statistics (CPI/WPI)",
-      category: "DOMAIN",
-      description: "Laspeyres/Jevons index compilation & rural/urban price aggregation",
-      current: 2,
-      target: 3,
-      lastAssessed: "02 Jul 2026",
-    },
-    {
-      id: "c3",
-      fracCode: "FN-STAT-021",
-      label: "National Income Accounting",
-      category: "DOMAIN",
-      description: "SNA 2008 Gross Value Added (GVA) & GDP deflator calculations",
-      current: 2,
-      target: 3,
-      lastAssessed: "28 May 2026",
-    },
-    {
-      id: "c4",
-      fracCode: "FN-STAT-033",
-      label: "R/Python for Survey Processing",
-      category: "FUNCTIONAL",
-      description: "Automated unit-level data validation & microdata tabulation",
-      current: 4,
-      target: 4,
-      lastAssessed: "19 Aug 2026",
-    },
-    {
-      id: "c5",
-      fracCode: "BH-INTEGRITY-001",
-      label: "Data Integrity & Ethics",
-      category: "BEHAVIORAL",
-      description: "Official Statistics Confidentiality under Collection of Statistics Act 2008",
-      current: 4,
-      target: 5,
-      lastAssessed: "05 Jun 2026",
-    },
-    {
-      id: "c6",
-      fracCode: "FN-STAT-042",
-      label: "Industrial Production Indexing",
-      category: "DOMAIN",
-      description: "Annual Survey of Industries (ASI) and IIP item weight adjustment",
-      current: 2,
-      target: 3,
-      lastAssessed: "14 Jul 2026",
-    },
+    { id: "c1", fracCode: "FN-STAT-014", label: "Survey Sampling Design", category: "FUNCTIONAL", description: "NSSO Stratified Multistage Sampling & Sample Allocation (FOD)", current: 3, target: 3, lastAssessed: "12 Aug 2026" },
+    { id: "c2", fracCode: "DM-PRICE-002", label: "Price Statistics (CPI/WPI)", category: "DOMAIN", description: "Laspeyres/Jevons index compilation & rural/urban price aggregation", current: 2, target: 3, lastAssessed: "02 Jul 2026" },
+    { id: "c3", fracCode: "FN-STAT-021", label: "National Income Accounting", category: "DOMAIN", description: "SNA 2008 Gross Value Added (GVA) & GDP deflator calculations", current: 2, target: 3, lastAssessed: "28 May 2026" },
+    { id: "c4", fracCode: "FN-STAT-033", label: "R/Python for Survey Processing", category: "FUNCTIONAL", description: "Automated unit-level data validation & microdata tabulation", current: 4, target: 3, lastAssessed: "19 Aug 2026" },
+    { id: "c5", fracCode: "BH-INTEGRITY-001", label: "Data Integrity & Ethics", category: "BEHAVIORAL", description: "Official Statistics Confidentiality under Collection of Statistics Act 2008", current: 4, target: 4, lastAssessed: "05 Jun 2026" },
+    { id: "c6", fracCode: "FN-STAT-042", label: "Industrial Production Indexing", category: "DOMAIN", description: "Annual Survey of Industries (ASI) and IIP item weight adjustment", current: 2, target: 3, lastAssessed: "14 Jul 2026" },
+    { id: "c7", fracCode: "TC-DATAVIZ-001", label: "Data Visualization & Dashboarding", category: "TECHNICAL", description: "Tableau, Power BI and D3.js for statistical report visualisation", current: 2, target: 3, lastAssessed: "20 Jul 2026" },
+    { id: "c8", fracCode: "TC-SQL-001", label: "SQL & Database Management", category: "TECHNICAL", description: "Relational database querying for microdata and frame management", current: 1, target: 3, lastAssessed: "15 Jun 2026" },
+    { id: "c9", fracCode: "DG-EGOV-001", label: "e-Governance & Digital India Platforms", category: "DIGITAL_GOV", description: "Government e-Marketplace, UMANG, DigiLocker, and API Setu integration", current: 2, target: 3, lastAssessed: "08 Aug 2026" },
+    { id: "c10", fracCode: "TC-GIS-001", label: "GIS & Geospatial Analysis", category: "TECHNICAL", description: "QGIS/ArcGIS for spatial mapping of statistical survey regions", current: 1, target: 2, lastAssessed: "22 May 2026" },
+    { id: "c11", fracCode: "BH-COMM-001", label: "Communication & Report Writing", category: "BEHAVIORAL", description: "Drafting statistical bulletins, press releases, and data briefs", current: 3, target: 3, lastAssessed: "01 Aug 2026" },
+    { id: "c12", fracCode: "BH-LEAD-001", label: "Leadership & Team Coordination", category: "BEHAVIORAL", description: "FOD field team supervision and inter-division coordination", current: 1, target: 2, lastAssessed: "10 Jul 2026" },
   ],
   user_so_delhi: [
-    {
-      id: "c1",
-      fracCode: "FN-STAT-014",
-      label: "Survey Sampling Design",
-      category: "FUNCTIONAL",
-      description: "NSSO Stratified Multistage Sampling & Sample Allocation (FOD)",
-      current: 4,
-      target: 5,
-      lastAssessed: "15 Aug 2026",
-    },
-    {
-      id: "c2",
-      fracCode: "DM-PRICE-002",
-      label: "Price Statistics (CPI/WPI)",
-      category: "DOMAIN",
-      description: "Laspeyres/Jevons index compilation & rural/urban price aggregation",
-      current: 4,
-      target: 4,
-      lastAssessed: "10 Aug 2026",
-    },
-    {
-      id: "c3",
-      fracCode: "FN-STAT-021",
-      label: "National Income Accounting",
-      category: "DOMAIN",
-      description: "SNA 2008 Gross Value Added (GVA) & GDP deflator calculations",
-      current: 3,
-      target: 4,
-      lastAssessed: "21 Jul 2026",
-    },
-    {
-      id: "c4",
-      fracCode: "FN-STAT-033",
-      label: "R/Python for Survey Processing",
-      category: "FUNCTIONAL",
-      description: "Automated unit-level data validation & microdata tabulation",
-      current: 3,
-      target: 5,
-      lastAssessed: "02 Aug 2026",
-    },
-    {
-      id: "c5",
-      fracCode: "BH-INTEGRITY-001",
-      label: "Data Integrity & Ethics",
-      category: "BEHAVIORAL",
-      description: "Official Statistics Confidentiality under Collection of Statistics Act 2008",
-      current: 5,
-      target: 5,
-      lastAssessed: "12 May 2026",
-    },
-    {
-      id: "c6",
-      fracCode: "FN-STAT-042",
-      label: "Industrial Production Indexing",
-      category: "DOMAIN",
-      description: "Annual Survey of Industries (ASI) and IIP item weight adjustment",
-      current: 4,
-      target: 4,
-      lastAssessed: "30 Jun 2026",
-    },
+    { id: "c1", fracCode: "FN-STAT-014", label: "Survey Sampling Design", category: "FUNCTIONAL", description: "NSSO Stratified Multistage Sampling & Sample Allocation (FOD)", current: 4, target: 5, lastAssessed: "15 Aug 2026" },
+    { id: "c2", fracCode: "DM-PRICE-002", label: "Price Statistics (CPI/WPI)", category: "DOMAIN", description: "Laspeyres/Jevons index compilation & rural/urban price aggregation", current: 4, target: 4, lastAssessed: "10 Aug 2026" },
+    { id: "c3", fracCode: "FN-STAT-021", label: "National Income Accounting", category: "DOMAIN", description: "SNA 2008 Gross Value Added (GVA) & GDP deflator calculations", current: 3, target: 5, lastAssessed: "21 Jul 2026" },
+    { id: "c4", fracCode: "FN-STAT-033", label: "R/Python for Survey Processing", category: "FUNCTIONAL", description: "Automated unit-level data validation & microdata tabulation", current: 3, target: 5, lastAssessed: "02 Aug 2026" },
+    { id: "c5", fracCode: "BH-INTEGRITY-001", label: "Data Integrity & Ethics", category: "BEHAVIORAL", description: "Official Statistics Confidentiality under Collection of Statistics Act 2008", current: 5, target: 5, lastAssessed: "12 May 2026" },
+    { id: "c6", fracCode: "FN-STAT-042", label: "Industrial Production Indexing", category: "DOMAIN", description: "Annual Survey of Industries (ASI) and IIP item weight adjustment", current: 4, target: 5, lastAssessed: "30 Jun 2026" },
+    { id: "c7", fracCode: "TC-DATAVIZ-001", label: "Data Visualization & Dashboarding", category: "TECHNICAL", description: "Tableau, Power BI and D3.js for statistical report visualisation", current: 3, target: 5, lastAssessed: "18 Jul 2026" },
+    { id: "c8", fracCode: "TC-SQL-001", label: "SQL & Database Management", category: "TECHNICAL", description: "Relational database querying for microdata and frame management", current: 3, target: 5, lastAssessed: "25 Jun 2026" },
+    { id: "c9", fracCode: "DG-EGOV-001", label: "e-Governance & Digital India Platforms", category: "DIGITAL_GOV", description: "Government e-Marketplace, UMANG, DigiLocker, and API Setu integration", current: 3, target: 4, lastAssessed: "05 Aug 2026" },
+    { id: "c10", fracCode: "TC-GIS-001", label: "GIS & Geospatial Analysis", category: "TECHNICAL", description: "QGIS/ArcGIS for spatial mapping of statistical survey regions", current: 2, target: 4, lastAssessed: "12 Jun 2026" },
+    { id: "c11", fracCode: "BH-COMM-001", label: "Communication & Report Writing", category: "BEHAVIORAL", description: "Drafting statistical bulletins, press releases, and data briefs", current: 4, target: 5, lastAssessed: "28 Jul 2026" },
+    { id: "c12", fracCode: "BH-LEAD-001", label: "Leadership & Team Coordination", category: "BEHAVIORAL", description: "FOD field team supervision and inter-division coordination", current: 3, target: 4, lastAssessed: "20 Jun 2026" },
   ],
   user_dd_kolkata: [
-    {
-      id: "c1",
-      fracCode: "FN-STAT-014",
-      label: "Survey Sampling Design",
-      category: "FUNCTIONAL",
-      description: "NSSO Stratified Multistage Sampling & Sample Allocation (FOD)",
-      current: 5,
-      target: 5,
-      lastAssessed: "01 Aug 2026",
-    },
-    {
-      id: "c2",
-      fracCode: "DM-PRICE-002",
-      label: "Price Statistics (CPI/WPI)",
-      category: "DOMAIN",
-      description: "Laspeyres/Jevons index compilation & rural/urban price aggregation",
-      current: 4,
-      target: 5,
-      lastAssessed: "18 Jul 2026",
-    },
-    {
-      id: "c3",
-      fracCode: "FN-STAT-021",
-      label: "National Income Accounting",
-      category: "DOMAIN",
-      description: "SNA 2008 Gross Value Added (GVA) & GDP deflator calculations",
-      current: 5,
-      target: 5,
-      lastAssessed: "25 Aug 2026",
-    },
-    {
-      id: "c4",
-      fracCode: "FN-STAT-033",
-      label: "R/Python for Survey Processing",
-      category: "FUNCTIONAL",
-      description: "Automated unit-level data validation & microdata tabulation",
-      current: 4,
-      target: 5,
-      lastAssessed: "11 Aug 2026",
-    },
-    {
-      id: "c5",
-      fracCode: "BH-INTEGRITY-001",
-      label: "Data Integrity & Ethics",
-      category: "BEHAVIORAL",
-      description: "Official Statistics Confidentiality under Collection of Statistics Act 2008",
-      current: 5,
-      target: 5,
-      lastAssessed: "10 Jun 2026",
-    },
-    {
-      id: "c6",
-      fracCode: "FN-STAT-042",
-      label: "Industrial Production Indexing",
-      category: "DOMAIN",
-      description: "Annual Survey of Industries (ASI) and IIP item weight adjustment",
-      current: 4,
-      target: 5,
-      lastAssessed: "14 Jul 2026",
-    },
+    { id: "c1", fracCode: "FN-STAT-014", label: "Survey Sampling Design", category: "FUNCTIONAL", description: "NSSO Stratified Multistage Sampling & Sample Allocation (FOD)", current: 5, target: 5, lastAssessed: "01 Aug 2026" },
+    { id: "c2", fracCode: "DM-PRICE-002", label: "Price Statistics (CPI/WPI)", category: "DOMAIN", description: "Laspeyres/Jevons index compilation & rural/urban price aggregation", current: 4, target: 5, lastAssessed: "18 Jul 2026" },
+    { id: "c3", fracCode: "FN-STAT-021", label: "National Income Accounting", category: "DOMAIN", description: "SNA 2008 Gross Value Added (GVA) & GDP deflator calculations", current: 5, target: 5, lastAssessed: "25 Aug 2026" },
+    { id: "c4", fracCode: "FN-STAT-033", label: "R/Python for Survey Processing", category: "FUNCTIONAL", description: "Automated unit-level data validation & microdata tabulation", current: 4, target: 5, lastAssessed: "11 Aug 2026" },
+    { id: "c5", fracCode: "BH-INTEGRITY-001", label: "Data Integrity & Ethics", category: "BEHAVIORAL", description: "Official Statistics Confidentiality under Collection of Statistics Act 2008", current: 5, target: 5, lastAssessed: "10 Jun 2026" },
+    { id: "c6", fracCode: "FN-STAT-042", label: "Industrial Production Indexing", category: "DOMAIN", description: "Annual Survey of Industries (ASI) and IIP item weight adjustment", current: 4, target: 5, lastAssessed: "14 Jul 2026" },
+    { id: "c7", fracCode: "TC-DATAVIZ-001", label: "Data Visualization & Dashboarding", category: "TECHNICAL", description: "Tableau, Power BI and D3.js for statistical report visualisation", current: 4, target: 5, lastAssessed: "22 Jul 2026" },
+    { id: "c8", fracCode: "TC-SQL-001", label: "SQL & Database Management", category: "TECHNICAL", description: "Relational database querying for microdata and frame management", current: 4, target: 5, lastAssessed: "05 Jul 2026" },
+    { id: "c9", fracCode: "DG-EGOV-001", label: "e-Governance & Digital India Platforms", category: "DIGITAL_GOV", description: "Government e-Marketplace, UMANG, DigiLocker, and API Setu integration", current: 4, target: 5, lastAssessed: "15 Aug 2026" },
+    { id: "c10", fracCode: "TC-GIS-001", label: "GIS & Geospatial Analysis", category: "TECHNICAL", description: "QGIS/ArcGIS for spatial mapping of statistical survey regions", current: 3, target: 5, lastAssessed: "28 Jun 2026" },
+    { id: "c11", fracCode: "BH-COMM-001", label: "Communication & Report Writing", category: "BEHAVIORAL", description: "Drafting statistical bulletins, press releases, and data briefs", current: 5, target: 5, lastAssessed: "02 Aug 2026" },
+    { id: "c12", fracCode: "BH-LEAD-001", label: "Leadership & Team Coordination", category: "BEHAVIORAL", description: "FOD field team supervision and inter-division coordination", current: 4, target: 5, lastAssessed: "18 Jul 2026" },
   ],
 };
 

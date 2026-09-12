@@ -17,6 +17,7 @@ import { AssessView } from "@/components/views/assess-view";
 import { HistoryView } from "@/components/views/history-view";
 import { ProfileView } from "@/components/views/profile-view";
 import { RoleLoginModal } from "@/components/auth/role-login-modal";
+import { StatLearningAssistant } from "@/components/ai/stat-learning-assistant";
 import { OfficerManagementView } from "@/components/views/admin/officer-management-view";
 import { QuestionReviewView } from "@/components/views/admin/question-review-view";
 import { AdminDocumentsView } from "@/components/views/admin/admin-documents-view";
@@ -667,6 +668,7 @@ function WorkspaceContent() {
               recommendations={recommendations}
               officerName={currentOfficer.name}
               cadreRank={currentOfficer.cadreRank}
+              officerId={currentOfficer.id}
             />
           </div>
         );
@@ -755,6 +757,14 @@ function WorkspaceContent() {
         cadreRank={role === "TRAINING_ADMIN" ? "HQ" : currentOfficer.cadreRank}
         onAssessmentCompleted={handleAssessmentCompleted}
       />
+
+      {/* AI Statistical Learning Assistant — officer workspace only */}
+      {role === "OFFICER" && (
+        <StatLearningAssistant
+          officer={currentOfficer}
+          competencies={currentCompetencies}
+        />
+      )}
     </div>
   );
 }

@@ -80,10 +80,12 @@ const OFFICER_NAV_ITEMS: {
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
   { id: "dashboard", label: "Dashboard", icon: Home },
-  { id: "competencies", label: "My Competencies", icon: Target },
+  { id: "assess", label: "Assess", icon: Target },
+  { id: "gap-analysis", label: "Gap Analysis", icon: BarChart3 },
   { id: "learning-path", label: "Learning Path", icon: BookOpen },
-  { id: "practice", label: "Practice", icon: FileQuestion },
-  { id: "progress", label: "Progress", icon: History },
+  { id: "quiz-studio", label: "Quiz Studio", icon: FileQuestion },
+  { id: "history", label: "History", icon: History },
+  { id: "admin", label: "Admin", icon: ShieldCheck },
   { id: "profile", label: "Profile", icon: User },
 ];
 
@@ -99,6 +101,7 @@ const ADMIN_NAV_ITEMS: {
   { id: "admin-quiz-gen", label: "AI Quiz Generator", icon: Sparkles },
   { id: "admin-review", label: "Question Review", icon: ShieldCheck },
   { id: "admin-analytics", label: "Learning Analytics", icon: TrendingUp },
+  { id: "dashboard", label: "Officer View", icon: User },
 ];
 
 export function Navbar({
@@ -147,14 +150,24 @@ export function Navbar({
   const handleNavClick = (id: NavTab) => {
     setMenuOpen(false);
     onTabChange(id);
-    if (id === "quiz-studio" || id === "practice") {
+    if (id === "quiz-studio") {
       onStartAssessment();
     }
   };
 
   const currentLabel =
     navItems.find((item) => item.id === activeTab)?.label ||
-    (activeTab === "assess" || activeTab === "quiz-studio" ? "Practice" : activeTab === "gap-analysis" ? "My Competencies" : "Dashboard");
+    (activeTab === "assess"
+      ? "Assess"
+      : activeTab === "gap-analysis"
+      ? "Gap Analysis"
+      : activeTab === "quiz-studio"
+      ? "Quiz Studio"
+      : activeTab === "history"
+      ? "History"
+      : activeTab === "admin"
+      ? "Admin"
+      : "Dashboard");
 
   const searchItems = [
     ...competencies.map((item) => ({
@@ -212,7 +225,7 @@ export function Navbar({
             </svg>
             <span>
               <strong>Karmayogi Engine</strong>
-              <small>{role === "OFFICER" ? "CADRE LEARNING & FRAC" : "TRAINING DIVISION ADMIN"}</small>
+              <small>{role === "OFFICER" ? "STATISTICS LEARNING" : "TRAINING DIVISION ADMIN"}</small>
             </span>
           </a>
           <button
@@ -230,9 +243,7 @@ export function Navbar({
             const Icon = item.icon;
             const isActive =
               activeTab === item.id ||
-              (item.id === "competencies" && activeTab === "gap-analysis") ||
-              (item.id === "practice" && (activeTab === "assess" || activeTab === "quiz-studio")) ||
-              (item.id === "progress" && activeTab === "history") ||
+              (item.id === "admin" && (activeTab === "admin" || activeTab.startsWith("admin-"))) ||
               (item.id === "admin-dashboard" && activeTab === "admin");
 
             return (

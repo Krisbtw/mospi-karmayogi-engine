@@ -520,30 +520,6 @@ function WorkspaceContent() {
                 />
               </section>
             </div>
-            <section id="manuals" className="upload-panel" aria-label="Manual ingestion">
-              <div className="upload-callout">
-                <span className="upload-callout-icon">
-                  <FileUp aria-hidden="true" />
-                </span>
-                <div>
-                  <h2>Turn a manual into a source-linked quiz</h2>
-                  <p>
-                    PDF, DOCX or TXT <span>·</span> Answers linked to the evidence
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="primary-action"
-                  onClick={() => setIsDocUploadOpen(true)}
-                >
-                  Upload material
-                </button>
-              </div>
-              <details className="inline-ingestion">
-                <summary>Or drop a file and explore preset manuals</summary>
-                <DocumentDropzone onDocumentAdded={handleDocumentAdded} />
-              </details>
-            </section>
           </>
         );
 
@@ -605,6 +581,32 @@ function WorkspaceContent() {
       case "quiz-studio":
         return (
           <div className="space-y-6">
+            {/* Source-Linked Manual Ingestion Section */}
+            <section id="manuals" className="upload-panel" aria-label="Manual ingestion">
+              <div className="upload-callout">
+                <span className="upload-callout-icon">
+                  <FileUp aria-hidden="true" />
+                </span>
+                <div>
+                  <h2>Turn a manual into a source-linked quiz</h2>
+                  <p>
+                    PDF, DOCX or TXT <span>·</span> Answers linked to the evidence
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="primary-action"
+                  onClick={() => setIsDocUploadOpen(true)}
+                >
+                  Upload material
+                </button>
+              </div>
+              <details className="inline-ingestion" open>
+                <summary>Or drop a file and explore preset manuals</summary>
+                <DocumentDropzone onDocumentAdded={handleDocumentAdded} />
+              </details>
+            </section>
+
             <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
@@ -700,7 +702,7 @@ function WorkspaceContent() {
         sidebarCollapsed={sidebarCollapsed}
         onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
         role={role}
-        onSwitchRole={switchRole}
+        onSwitchRole={() => handleSwitchToRole(role === "OFFICER" ? "TRAINING_ADMIN" : "OFFICER")}
         onOpenRoleModal={() => setIsLoginModalOpen(true)}
       />
 
@@ -710,13 +712,6 @@ function WorkspaceContent() {
           onSelectOfficer={handleSelectOfficer}
           competencies={currentCompetencies}
           activeView={role === "TRAINING_ADMIN" ? "TD_ADMIN" : "OFFICER"}
-          onChangeView={(view) => {
-            if (view === "TD_ADMIN") {
-              handleSwitchToRole("TRAINING_ADMIN");
-            } else {
-              handleSwitchToRole("OFFICER");
-            }
-          }}
           onOpenQuizGenerator={() => setIsQuizGenOpen(true)}
           onOpenDocUpload={() => setIsDocUploadOpen(true)}
         />
@@ -724,7 +719,7 @@ function WorkspaceContent() {
         {renderTabContent()}
 
         <footer className="workspace-footer">
-          MoSPI Statistical Capacity Building Platform <span>·</span> iGOT Karmayogi FRAC Alignment <span>·</span> NSSTA Training Directorate
+          MoSPI Statistical Capacity Building Platform <span>·</span> iGOT Karmayogi FRAC Alignment <span>·</span> NSSTA Training Directorate <span>·</span> <a href="/login" className="hover:underline text-primary font-medium inline-flex items-center gap-1">MoSPI SSO Login Portal <ArrowRight className="h-3 w-3" /></a>
         </footer>
       </main>
 

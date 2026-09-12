@@ -1,9 +1,8 @@
 "use client";
 
-import { Check, ChevronDown, FileUp, ListChecks, FlaskConical, User, ShieldCheck, Sparkles, BookOpen } from "lucide-react";
+import { Check, ChevronDown, FileUp, ListChecks } from "lucide-react";
 import { Officer, DEMO_OFFICERS, CompetencyItem } from "@/lib/data-service";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { SlidingTabs, SlidingTabOption } from "@/components/ui/sliding-tabs";
 import { CircularGauge } from "@/components/ui/circular-gauge";
 
 interface CadreProfileBarProps {
@@ -11,23 +10,10 @@ interface CadreProfileBarProps {
   onSelectOfficer: (officer: Officer) => void;
   competencies: CompetencyItem[];
   activeView: "OFFICER" | "TD_ADMIN";
-  onChangeView: (view: "OFFICER" | "TD_ADMIN") => void;
+  onChangeView?: (view: "OFFICER" | "TD_ADMIN") => void;
   onOpenQuizGenerator: () => void;
   onOpenDocUpload: () => void;
 }
-
-const VIEW_OPTIONS: SlidingTabOption<"OFFICER" | "TD_ADMIN">[] = [
-  {
-    id: "OFFICER",
-    label: "Cadre Officer View",
-    icon: <User className="h-3.5 w-3.5" />,
-  },
-  {
-    id: "TD_ADMIN",
-    label: "Training Division Admin",
-    icon: <ShieldCheck className="h-3.5 w-3.5" />,
-  },
-];
 
 export function CadreProfileBar({ currentOfficer, onSelectOfficer, competencies, activeView, onChangeView, onOpenQuizGenerator, onOpenDocUpload }: CadreProfileBarProps) {
   const activeGaps = competencies.filter((c) => c.current < c.target);
@@ -77,15 +63,6 @@ export function CadreProfileBar({ currentOfficer, onSelectOfficer, competencies,
             <span>Ingest Manual</span>
           </button>
         </div>
-
-        {/* Modern 21st.dev Animated Sliding Pill Tabs */}
-        <SlidingTabs
-          options={VIEW_OPTIONS}
-          activeId={activeView}
-          onChange={onChangeView}
-          layoutId="role-switcher-pill"
-          className="shadow-sm"
-        />
 
         <DropdownMenu>
           <DropdownMenuTrigger id="officer-switcher" className="role-switcher" aria-label="Switch officer or workspace view">

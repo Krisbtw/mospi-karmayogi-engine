@@ -22,6 +22,8 @@ import {
   TrendingUp,
   Sparkles,
   ChevronDown,
+  ArrowLeftRight,
+  Lock,
 } from "lucide-react";
 import { Officer, CompetencyItem, IgotCourse, DocumentItem } from "@/lib/data-service";
 import { UserRole } from "@/lib/role-context";
@@ -374,18 +376,22 @@ export function Navbar({
         </div>
 
         <div className="topbar-actions">
-          {/* Persona / Role Switcher Pill */}
+          {/* 1-Click Role Switcher Pill */}
           <button
             type="button"
             id="role-switch-button"
-            onClick={onOpenRoleModal}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            onClick={onSwitchRole}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all shadow-sm hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
             style={{
               backgroundColor: role === "TRAINING_ADMIN" ? "rgba(99, 102, 241, 0.12)" : "rgba(0, 159, 155, 0.12)",
               borderColor: role === "TRAINING_ADMIN" ? "rgba(99, 102, 241, 0.35)" : "rgba(0, 159, 155, 0.35)",
               color: role === "TRAINING_ADMIN" ? "#4338ca" : "#007f7c",
             }}
-            title="Click to switch between Cadre Officer and Training Division Admin"
+            title={
+              role === "TRAINING_ADMIN"
+                ? "Click to switch to Cadre Officer View (1-Click)"
+                : "Click to switch to Training Division Admin View (1-Click)"
+            }
           >
             {role === "TRAINING_ADMIN" ? (
               <>
@@ -393,6 +399,11 @@ export function Navbar({
                 <span className="hidden sm:inline font-bold">Training Admin</span>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">
                   NSSTA HQ
+                </span>
+                <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-300 pl-1.5 border-l border-indigo-300 dark:border-indigo-700">
+                  <ArrowLeftRight className="h-3 w-3" />
+                  <span className="hidden md:inline">To Officer</span>
+                  <span className="md:hidden">Switch</span>
                 </span>
               </>
             ) : (
@@ -402,11 +413,13 @@ export function Navbar({
                 <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-800 dark:text-teal-200">
                   {officer.cadreRank}
                 </span>
+                <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-teal-800 dark:text-teal-200 pl-1.5 border-l border-teal-300 dark:border-teal-700">
+                  <ArrowLeftRight className="h-3 w-3" />
+                  <span className="hidden md:inline">To Admin</span>
+                  <span className="md:hidden">Switch</span>
+                </span>
               </>
             )}
-            <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 pl-1 border-l border-slate-300 dark:border-slate-700">
-              Switch
-            </span>
           </button>
 
           <DropdownMenu>
@@ -468,11 +481,25 @@ export function Navbar({
                   View Employee Profile
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onSelect={onOpenRoleModal}>
+              <DropdownMenuItem onSelect={onSwitchRole}>
                 <div className="flex items-center justify-between w-full">
-                  <span>Switch Platform Persona</span>
+                  <span className="flex items-center gap-1.5">
+                    <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />
+                    <span>Switch to {role === "OFFICER" ? "Training Admin" : "Cadre Officer"}</span>
+                  </span>
                   <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                    {role === "OFFICER" ? "Go to Admin" : "Go to Officer"}
+                    1-Click
+                  </span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => { window.location.href = "/login"; }}>
+                <div className="flex items-center justify-between w-full">
+                  <span className="flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5 text-slate-500" />
+                    <span>Login Portal / Switch Account</span>
+                  </span>
+                  <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    /login
                   </span>
                 </div>
               </DropdownMenuItem>

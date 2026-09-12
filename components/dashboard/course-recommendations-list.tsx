@@ -7,7 +7,6 @@ import { IgotCourse, Officer, CompetencyItem } from "@/lib/data-service";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { JourneyStepper } from "@/components/ui/journey-stepper";
 import { SovereignVerificationTag } from "@/components/ui/sovereign-verification-tag";
 
@@ -230,11 +229,9 @@ export function CourseRecommendationsList({
 
           return (
             <li key={rec.id} className="list-none">
-              <CardSpotlight
-                radius={240}
-                color="rgba(0, 160, 165, 0.16)"
+              <div
                 className={cn(
-                  "p-5 transition-all",
+                  "rounded-xl border border-border bg-surface p-5 transition-all hover:border-primary/40 shadow-sm",
                   isDone && "bg-slate-50/50 dark:bg-slate-900/40 opacity-90"
                 )}
               >
@@ -355,7 +352,7 @@ export function CourseRecommendationsList({
                     <JourneyStepper steps={journeySteps} />
                   </div>
                 </div>
-              </CardSpotlight>
+              </div>
             </li>
           );
         })}

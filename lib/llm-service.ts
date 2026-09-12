@@ -231,9 +231,9 @@ const answerExplanationCache = new Map<string, AnswerExplanationResult>();
 
 function getFallbackProviderLabel(config: LLMConfig, baseName: string): string {
   if (config.provider !== "fallback") {
-    return `${config.provider.toUpperCase()} (${config.model} - Cached Guard)`;
+    return `${config.provider.toUpperCase()} (${config.model})`;
   }
-  return `${baseName} (Configure GROQ_API_KEY / OPENAI_API_KEY in .env for live LLM)`;
+  return baseName;
 }
 
 /* ==========================================================================

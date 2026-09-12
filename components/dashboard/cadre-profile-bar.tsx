@@ -35,13 +35,17 @@ export function CadreProfileBar({ currentOfficer, onSelectOfficer, competencies,
   const complianceRate = Math.round((metCount / (competencies.length || 1)) * 100);
 
   return (
-    <div className="workspace-heading flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <div>
-        <h1>{activeView === "OFFICER" ? "Your next step, made clear." : "Build a stronger statistical workforce."}</h1>
-        <p>{activeView === "OFFICER" ? "Build skills for better statistical decisions." : "A clear view of cadre readiness and learning priorities."}</p>
+    <div className="workspace-heading flex flex-col 2xl:flex-row 2xl:items-center 2xl:justify-between gap-4">
+      <div className="min-w-[260px] flex-1">
+        <h1 className="text-xl sm:text-2xl lg:text-[26px] font-bold tracking-tight text-fg whitespace-normal">
+          {activeView === "OFFICER" ? "Your next step, made clear." : "Build a stronger statistical workforce."}
+        </h1>
+        <p className="text-xs sm:text-sm text-fg-muted mt-1 leading-relaxed">
+          {activeView === "OFFICER" ? "Build skills for better statistical decisions." : "A clear view of cadre readiness and learning priorities."}
+        </p>
       </div>
 
-      <div className="workspace-context flex flex-wrap items-center gap-3">
+      <div className="workspace-context flex flex-wrap items-center gap-2.5 sm:gap-3">
         {/* Live Circular FRAC Compliance Gauge */}
         {activeView === "OFFICER" && (
           <CircularGauge

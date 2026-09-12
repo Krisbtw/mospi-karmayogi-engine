@@ -179,11 +179,14 @@ export function QuizTakerModal({
     setStatus("completed");
   };
 
-  // Scoring logic
+  // Scoring logic:
+  // - High score (>= 60%): Passed (+1 proficiency level towards target)
+  // - Low score (< 40%, including 0%): Proficiency deficit detected (-1 level, down to minimum 1)
+  // - Borderline (40% - 59%): Retain current level (0 delta)
   const correctCount = questions.filter((q) => selectedAnswers[q.id] === q.correctChoice).length;
   const scorePercent = Math.round((correctCount / totalQ) * 100);
   const passed = scorePercent >= 60;
-  const earnedProficiencyDelta = passed ? 1 : 0;
+  const earnedProficiencyDelta = scorePercent >= 60 ? 1 : scorePercent < 40 ? -1 : 0;
 
   const handleFinishAndSave = () => {
     onAssessmentCompleted({
@@ -353,16 +356,22 @@ export function QuizTakerModal({
                     {correctCount} of {totalQ} correct answers
                   </p>
                 </div>
-                <div className="quiz-fs-score-right">
-                  <h3 className={passed ? "quiz-fs-result-pass" : "quiz-fs-result-fail"}>
-                    {passed ? "Cadre Benchmark Achieved" : "Competency Gap Identified"}
-                  </h3>
-                  <p className="quiz-fs-result-desc">
-                    {passed
-                      ? `Officer proficiency will increment by +1 level toward the ${cadreRank} baseline upon saving.`
-                      : "This competency remains tagged as an active gap. Recommended iGOT Karmayogi modules have been aligned below."}
-                  </p>
-                </div>
+                  <div className="quiz-fs-score-right">
+                    <h3 className={earnedProficiencyDelta > 0 ? "quiz-fs-result-pass" : "quiz-fs-result-fail"}>
+                      {earnedProficiencyDelta > 0
+                        ? "Cadre Benchmark Progress Achieved"
+                        : earnedProficiencyDelta < 0
+                        ? "Proficiency Deficit Detected"
+                        : "Competency Baseline Maintained"}
+                    </h3>
+                    <p className="quiz-fs-result-desc">
+                      {earnedProficiencyDelta > 0
+                        ? `Diagnostic score of ${scorePercent}%. Assessed proficiency will increment by +1 level toward the ${cadreRank} baseline upon saving.`
+                        : earnedProficiencyDelta < 0
+                        ? `Low diagnostic score of ${scorePercent}%. Assessed proficiency will decrease by 1 level to reflect current operational deficits. Recommended iGOT modules are aligned below.`
+                        : `Diagnostic score of ${scorePercent}%. Assessed proficiency level remains unchanged. Review the training materials below before re-attempting.`}
+                    </p>
+                  </div>
               </div>
 
               {/* Detailed Breakdown with Citations */}

@@ -16,7 +16,26 @@ import { GapAnalysisView } from "@/components/views/gap-analysis-view";
 import { AssessView } from "@/components/views/assess-view";
 import { HistoryView } from "@/components/views/history-view";
 import { ProfileView } from "@/components/views/profile-view";
-import { FileUp, Sparkles, BookOpen, Target, ArrowRight } from "lucide-react";
+import { RoleLoginModal } from "@/components/auth/role-login-modal";
+import { OfficerManagementView } from "@/components/views/admin/officer-management-view";
+import { QuestionReviewView } from "@/components/views/admin/question-review-view";
+import { AdminDocumentsView } from "@/components/views/admin/admin-documents-view";
+import { AdminAnalyticsView } from "@/components/views/admin/admin-analytics-view";
+import { RoleProvider, useRole, UserRole } from "@/lib/role-context";
+import {
+  FileUp,
+  Sparkles,
+  BookOpen,
+  Target,
+  ArrowRight,
+  ShieldCheck,
+  Users,
+  BarChart3,
+  Layers,
+  TrendingUp,
+  FileQuestion,
+  RotateCcw,
+} from "lucide-react";
 import {
   Officer,
   DEMO_OFFICERS,
@@ -27,18 +46,42 @@ import {
   AssessmentQuestion,
   CompetencyItem,
   IgotCourse,
+  ReviewableQuestion,
+  getInitialReviewQuestions,
   registerDocumentQuestions,
   resolveQuestionsForQuiz,
 } from "@/lib/data-service";
 
 export default function HomePage() {
-  const [currentOfficer, setCurrentOfficer] = useState<Officer>(DEMO_OFFICERS[0]);
+  return (
+    <RoleProvider>
+      <WorkspaceContent />
+    </RoleProvider>
+  );
+}
+
+function WorkspaceContent() {
+  const {
+    role,
+    setRole,
+    switchRole,
+    currentOfficer,
+    setCurrentOfficer,
+    adminProfile,
+    isLoginModalOpen,
+    setIsLoginModalOpen,
+  } = useRole();
+
   const [officerProficiencies, setOfficerProficiencies] = useState<Record<string, CompetencyItem[]>>(
     INITIAL_OFFICER_COMPETENCIES
   );
   const [documents, setDocuments] = useState<DocumentItem[]>(PRELOADED_DOCUMENTS);
   const [recommendations, setRecommendations] = useState<IgotCourse[]>(IGOT_COURSE_CATALOG);
   const [activeTab, setActiveTab] = useState<NavTab>("dashboard");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Human-in-the-Loop Question Review State
+  const [reviewQuestions, setReviewQuestions] = useState<ReviewableQuestion[]>(getInitialReviewQuestions);
 
   // Modal states
   const [isDocUploadOpen, setIsDocUploadOpen] = useState(false);
@@ -54,10 +97,61 @@ export default function HomePage() {
     setCurrentOfficer(officer);
   };
 
+  // Switch role handler
+  const handleSwitchToRole = (newRole: UserRole) => {
+    setRole(newRole);
+    if (newRole === "TRAINING_ADMIN") {
+      setActiveTab("admin-dashboard");
+    } else {
+      setActiveTab("dashboard");
+    }
+  };
+
   // Add document handler
   const handleDocumentAdded = (newDoc: DocumentItem) => {
     registerDocumentQuestions(newDoc);
     setDocuments((prev) => [newDoc, ...prev]);
+  };
+
+  // Question review handlers
+  const handleApproveQuestion = (id: string) => {
+    setReviewQuestions((prev) =>
+      prev.map((q) =>
+        q.id === id
+          ? {
+              ...q,
+              reviewStatus: "APPROVED" as const,
+              reviewedAt: "Just now (Approved by Dr. Rajiv Sen)",
+              reviewerNotes: "Approved for cadre diagnostic examination and question bank inclusion.",
+            }
+          : q
+      )
+    );
+  };
+
+  const handleRejectQuestion = (id: string, reason?: string) => {
+    setReviewQuestions((prev) =>
+      prev.map((q) =>
+        q.id === id
+          ? {
+              ...q,
+              reviewStatus: "REJECTED" as const,
+              reviewedAt: "Just now",
+              reviewerNotes: reason || "Rejected by institutional reviewer. Excluded from quiz generation.",
+            }
+          : q
+      )
+    );
+  };
+
+  const handleEditQuestion = (updated: ReviewableQuestion) => {
+    setReviewQuestions((prev) =>
+      prev.map((q) => (q.id === updated.id ? updated : q))
+    );
+  };
+
+  const handleResetReviewQuestions = () => {
+    setReviewQuestions(getInitialReviewQuestions());
   };
 
   // Start quiz from generator or shortcut — calls /api/assessment/generate with robust fallback
@@ -68,6 +162,8 @@ export default function HomePage() {
     difficulty: number;
     bloomLevel: string;
   }) => {
+    let resolvedQuestions: AssessmentQuestion[] = [];
+
     try {
       const res = await fetch("/api/assessment/generate", {
         method: "POST",
@@ -88,9 +184,7 @@ export default function HomePage() {
             (q: AssessmentQuestion) => q.competencyFracCode === config.competencyFracCode
           );
           if (hasMatchingCompetency) {
-            setActiveQuestions(data.questions);
-            setIsQuizTakerOpen(true);
-            return;
+            resolvedQuestions = data.questions;
           }
         }
       }
@@ -98,14 +192,25 @@ export default function HomePage() {
       console.warn("API generate fetch fallback:", err);
     }
 
-    // Robust Grounded Fallback: guarantee competency match, difficulty escalation, and exact count
-    const resolvedQuestions = resolveQuestionsForQuiz({
-      documentId: config.documentId,
-      competencyFracCode: config.competencyFracCode,
-      questionCount: config.questionCount,
-      difficulty: config.difficulty,
-      bloomLevel: config.bloomLevel,
-    });
+    if (resolvedQuestions.length === 0) {
+      resolvedQuestions = resolveQuestionsForQuiz({
+        documentId: config.documentId,
+        competencyFracCode: config.competencyFracCode,
+        questionCount: config.questionCount,
+        difficulty: config.difficulty,
+        bloomLevel: config.bloomLevel,
+      });
+    }
+
+    // If generated from Admin role, also ingest into Question Review pool with status "UNDER_REVIEW"
+    if (role === "TRAINING_ADMIN") {
+      const newReviewItems: ReviewableQuestion[] = resolvedQuestions.map((q) => ({
+        ...q,
+        reviewStatus: "UNDER_REVIEW" as const,
+        reviewerNotes: `AI Generated from ${q.sourceDocument || "Manual"} for competency ${q.competencyFracCode}. Awaiting technical validation.`,
+      }));
+      setReviewQuestions((prev) => [...newReviewItems, ...prev]);
+    }
 
     setActiveQuestions(resolvedQuestions);
     setIsQuizTakerOpen(true);
@@ -136,24 +241,26 @@ export default function HomePage() {
     passed: boolean;
     earnedProficiencyDelta: number;
   }) => {
-    if (result.passed && result.earnedProficiencyDelta > 0) {
-      setOfficerProficiencies((prev) => {
-        const officerList = prev[currentOfficer.id] || [];
-        const updated = officerList.map((comp) => {
-          if (comp.fracCode === result.competencyFracCode) {
-            return {
-              ...comp,
-              current: Math.min(comp.target, comp.current + result.earnedProficiencyDelta),
-              lastAssessed: "Just now (Diagnostic Quiz)",
-            };
-          }
-          return comp;
-        });
-        return { ...prev, [currentOfficer.id]: updated };
+    setOfficerProficiencies((prev) => {
+      const officerList = prev[currentOfficer.id] || [];
+      const updated = officerList.map((comp) => {
+        if (comp.fracCode === result.competencyFracCode) {
+          const newCurrent = Math.max(1, Math.min(5, comp.current + result.earnedProficiencyDelta));
+          const deltaSign = result.earnedProficiencyDelta > 0 ? `+${result.earnedProficiencyDelta}` : `${result.earnedProficiencyDelta}`;
+          const statusText = result.earnedProficiencyDelta !== 0
+            ? `Just now (${result.scorePercent}% · ${deltaSign} level)`
+            : `Just now (${result.scorePercent}% · Baseline unchanged)`;
+
+          return {
+            ...comp,
+            current: newCurrent,
+            lastAssessed: statusText,
+          };
+        }
+        return comp;
       });
-    }
-    // Navigate directly to Gap Analysis view after updating competency profile
-    setActiveTab("gap-analysis");
+      return { ...prev, [currentOfficer.id]: updated };
+    });
   };
 
   // iGOT Course Completion simulation (closes the gap in real time)
@@ -173,7 +280,6 @@ export default function HomePage() {
       return { ...prev, [currentOfficer.id]: updated };
     });
 
-    // Update recommendation status
     setRecommendations((prev) =>
       prev.map((r) =>
         r.competencyFracCode === competencyFracCode ? { ...r, status: "COMPLETED" } : r
@@ -181,7 +287,199 @@ export default function HomePage() {
     );
   };
 
+  // Tab switcher that synchronizes roles when user navigates
+  const handleTabChange = (tab: NavTab) => {
+    setActiveTab(tab);
+    if (tab.startsWith("admin-") || tab === "admin") {
+      if (role !== "TRAINING_ADMIN") {
+        setRole("TRAINING_ADMIN");
+      }
+    } else {
+      if (role !== "OFFICER") {
+        setRole("OFFICER");
+      }
+    }
+  };
+
   const renderTabContent = () => {
+    // ----------------------------------------------------
+    // TRAINING ADMIN VIEWS
+    // ----------------------------------------------------
+    if (role === "TRAINING_ADMIN") {
+      switch (activeTab) {
+        case "admin-dashboard":
+        case "admin":
+          return (
+            <div className="space-y-6">
+              <MetricStrip
+                officer={currentOfficer}
+                competencies={currentCompetencies}
+                completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length}
+              />
+              <TdAdminDashboard />
+            </div>
+          );
+
+        case "admin-officers":
+          return (
+            <div className="space-y-6">
+              <OfficerManagementView
+                officers={DEMO_OFFICERS}
+                officerProficiencies={officerProficiencies}
+                onInspectOfficer={(off) => {
+                  setCurrentOfficer(off);
+                }}
+              />
+            </div>
+          );
+
+        case "admin-competencies":
+          return (
+            <div className="space-y-6">
+              <div className="flex flex-col gap-1">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-primary font-semibold">
+                  Competency Heatmaps & Gap Analytics
+                </span>
+                <h2 className="text-2xl font-bold tracking-tight text-fg">
+                  Divisional FRAC Competency Gaps
+                </h2>
+                <p className="text-xs text-fg-muted">
+                  Cross-divisional readiness deficits across NSSO FOD, NAD, ESD, and DQAD.
+                </p>
+              </div>
+              <TdAdminDashboard />
+            </div>
+          );
+
+        case "admin-documents":
+          return (
+            <div className="space-y-6">
+              <AdminDocumentsView
+                documents={documents}
+                onDocumentAdded={handleDocumentAdded}
+                onSelectForQuizGeneration={(doc) => {
+                  setIsQuizGenOpen(true);
+                }}
+              />
+            </div>
+          );
+
+        case "admin-quiz-gen":
+          return (
+            <div className="space-y-6">
+              <div className="rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>RAG Grounded Generation Pipeline</span>
+                    </div>
+                    <h2 className="mt-3 text-2xl font-bold tracking-tight text-fg">
+                      AI Diagnostic Quiz Generator
+                    </h2>
+                    <p className="mt-1.5 text-xs text-fg-muted max-w-xl">
+                      Generate multi-level MCQs strictly grounded in uploaded MoSPI statistical manuals with exact page citations, Bloom&apos;s Taxonomy calibration, and automatic routing to the Human-in-the-Loop review pool.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsQuizGenOpen(true)}
+                    className="primary-action self-start sm:self-auto gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>Launch Generator</span>
+                  </button>
+                </div>
+
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="rounded-xl border border-border bg-slate-50/50 p-5">
+                    <div className="flex items-center gap-2.5 text-primary font-semibold text-sm">
+                      <Layers className="h-4 w-4" />
+                      <span>1. Ingest Knowledge</span>
+                    </div>
+                    <p className="mt-2 text-xs text-fg-muted leading-relaxed">
+                      Select official documents like PLFS, SNA, CPI, or ASI manuals. Text is chunked and verified.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-slate-50/50 p-5">
+                    <div className="flex items-center gap-2.5 text-indigo-600 font-semibold text-sm">
+                      <Target className="h-4 w-4" />
+                      <span>2. Calibrate Taxonomy</span>
+                    </div>
+                    <p className="mt-2 text-xs text-fg-muted leading-relaxed">
+                      Choose difficulty (1–5) and Bloom&apos;s level (Remember, Understand, Apply, Analyze, Evaluate) to target specific cadres.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-slate-50/50 p-5">
+                    <div className="flex items-center gap-2.5 text-emerald-600 font-semibold text-sm">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>3. Human-in-the-Loop</span>
+                    </div>
+                    <p className="mt-2 text-xs text-fg-muted leading-relaxed">
+                      Every generated question enters the review queue for institutional approval before release to officers.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-600">
+                      <ShieldCheck className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-fg">Institutional Question Review Studio</h4>
+                      <p className="text-xs text-fg-muted">
+                        Currently {reviewQuestions.filter((q) => q.reviewStatus === "UNDER_REVIEW").length} questions awaiting verification.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("admin-review")}
+                    className="outline-action text-xs font-semibold gap-1.5 shrink-0"
+                  >
+                    <span>Go to Question Review</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+
+        case "admin-review":
+          return (
+            <div className="space-y-6">
+              <QuestionReviewView
+                questions={reviewQuestions}
+                onApproveQuestion={handleApproveQuestion}
+                onRejectQuestion={handleRejectQuestion}
+                onEditQuestion={handleEditQuestion}
+                onResetAll={handleResetReviewQuestions}
+              />
+            </div>
+          );
+
+        case "admin-analytics":
+          return (
+            <div className="space-y-6">
+              <AdminAnalyticsView />
+            </div>
+          );
+
+        default:
+          return (
+            <div className="space-y-6">
+              <TdAdminDashboard />
+            </div>
+          );
+      }
+    }
+
+    // ----------------------------------------------------
+    // CADRE OFFICER VIEWS
+    // ----------------------------------------------------
     switch (activeTab) {
       case "dashboard":
         return (
@@ -250,6 +548,7 @@ export default function HomePage() {
         );
 
       case "assess":
+      case "practice":
         return (
           <div className="space-y-6">
             <AssessView
@@ -263,6 +562,7 @@ export default function HomePage() {
         );
 
       case "gap-analysis":
+      case "competencies":
         return (
           <div className="space-y-6">
             <GapAnalysisView
@@ -357,6 +657,7 @@ export default function HomePage() {
         );
 
       case "history":
+      case "progress":
         return (
           <div className="space-y-6">
             <HistoryView
@@ -365,18 +666,6 @@ export default function HomePage() {
               officerName={currentOfficer.name}
               cadreRank={currentOfficer.cadreRank}
             />
-          </div>
-        );
-
-      case "admin":
-        return (
-          <div className="space-y-6">
-            <MetricStrip
-              officer={currentOfficer}
-              competencies={currentCompetencies}
-              completedCoursesCount={recommendations.filter((r) => r.status === "COMPLETED").length}
-            />
-            <TdAdminDashboard />
           </div>
         );
 
@@ -397,17 +686,22 @@ export default function HomePage() {
   };
 
   return (
-    <div className="workspace-shell">
+    <div className={`workspace-shell ${sidebarCollapsed ? "is-sidebar-collapsed" : ""}`}>
       <Navbar
         officer={currentOfficer}
         competencies={currentCompetencies}
         recommendations={recommendations}
         documents={documents}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onStartAssessment={() => setIsQuizGenOpen(true)}
         onOpenDocUpload={() => setIsDocUploadOpen(true)}
         onTakeQuiz={handleTakeQuizForCompetency}
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
+        role={role}
+        onSwitchRole={switchRole}
+        onOpenRoleModal={() => setIsLoginModalOpen(true)}
       />
 
       <main id="dashboard" className="workspace-main">
@@ -415,12 +709,12 @@ export default function HomePage() {
           currentOfficer={currentOfficer}
           onSelectOfficer={handleSelectOfficer}
           competencies={currentCompetencies}
-          activeView={activeTab === "admin" ? "TD_ADMIN" : "OFFICER"}
+          activeView={role === "TRAINING_ADMIN" ? "TD_ADMIN" : "OFFICER"}
           onChangeView={(view) => {
             if (view === "TD_ADMIN") {
-              setActiveTab("admin");
+              handleSwitchToRole("TRAINING_ADMIN");
             } else {
-              setActiveTab("dashboard");
+              handleSwitchToRole("OFFICER");
             }
           }}
           onOpenQuizGenerator={() => setIsQuizGenOpen(true)}
@@ -430,11 +724,18 @@ export default function HomePage() {
         {renderTabContent()}
 
         <footer className="workspace-footer">
-          Sample data <span>·</span> iGOT not connected
+          MoSPI Statistical Capacity Building Platform <span>·</span> iGOT Karmayogi FRAC Alignment <span>·</span> NSSTA Training Directorate
         </footer>
       </main>
 
-      {/* Modals */}
+      {/* Role Switching Authentication Modal */}
+      <RoleLoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSelectRole={handleSwitchToRole}
+      />
+
+      {/* Ingestion & Quiz Modals */}
       <DocumentUploadModal
         isOpen={isDocUploadOpen}
         onClose={() => setIsDocUploadOpen(false)}
@@ -455,8 +756,8 @@ export default function HomePage() {
         isOpen={isQuizTakerOpen}
         onClose={() => setIsQuizTakerOpen(false)}
         questions={activeQuestions}
-        officerName={currentOfficer.name}
-        cadreRank={currentOfficer.cadreRank}
+        officerName={role === "TRAINING_ADMIN" ? "Dr. Rajiv Sen" : currentOfficer.name}
+        cadreRank={role === "TRAINING_ADMIN" ? "HQ" : currentOfficer.cadreRank}
         onAssessmentCompleted={handleAssessmentCompleted}
       />
     </div>

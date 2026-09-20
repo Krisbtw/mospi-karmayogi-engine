@@ -280,7 +280,8 @@ function generateFallbackResponse(query: string, officer: Officer, competencies:
   const q = query.toLowerCase().trim();
 
   if (/^(hi|hello|hey|namaste|greetings|good morning|good afternoon|good evening)\b/i.test(q)) {
-    return `Namaste, ${officer.name}! 👋 I am your MoSPI × iGOT Statistical Learning Assistant.\n\nAs a ${officer.designation} in the ${officer.division}, I can help you with:\n• Statistical methodology from NSSTA manuals (CPI, GDP, PLFS, ASI)\n• Your FRAC competency gaps and learning priorities\n• Recommended iGOT and NSSTA TPAC courses\n• Assessment preparation and quiz practice\n\nHow can I assist your statistical learning today?`;
+    const firstName = officer.name.split(" ")[0] || officer.name;
+    return `Namaste, ${firstName}! 👋 How can I help you today? You can ask me about MoSPI statistical methodology (CPI, GDP, PLFS, ASI), your FRAC competency gaps, or recommended iGOT courses.`;
   }
 
   if (q.includes("jevons") || q.includes("elementary") || q.includes("cpi")) {

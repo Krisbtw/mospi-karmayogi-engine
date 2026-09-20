@@ -141,7 +141,8 @@ function generateIntelligentFallback(
   const q = question.toLowerCase().trim();
 
   if (/^(hi|hello|hey|namaste|greetings|good morning|good afternoon|good evening)\b/i.test(q)) {
-    return `Namaste, ${officer.name}! 👋 I am your MoSPI × iGOT Statistical Learning Assistant.\n\nAs a ${officer.designation} in the ${officer.division}, I can help you with:\n• Grounded methodology from NSSTA manuals (PLFS, CPI, NAS, ASI)\n• Understanding and closing your FRAC competency gaps\n• Recommended iGOT Karmayogi and NSSTA TPAC courses\n• Assessment preparation and quiz practice\n\nHow can I support your learning today?`;
+    const firstName = officer.name.split(" ")[0] || officer.name;
+    return `Namaste, ${firstName}! 👋 How can I help you today? You can ask me about MoSPI statistical methodology (CPI, GDP, PLFS, ASI), your FRAC competency gaps, or recommended iGOT courses.`;
   }
 
   if (q.includes("jevons") || q.includes("elementary") || q.includes("cpi")) {
@@ -195,6 +196,17 @@ export async function POST(req: NextRequest) {
 
     const safeCompetencies = Array.isArray(competencies) ? competencies : [];
 
+    // Instant, natural greeting if the user just says "hi", "hello", etc.
+    const trimmedQ = question.trim();
+    const isPureGreeting = /^(hi|hello|hey|namaste|greetings|good morning|good afternoon|good evening)[\s!.]*$/i.test(trimmedQ);
+    if (isPureGreeting) {
+      const firstName = safeOfficer.name.split(" ")[0] || safeOfficer.name;
+      return NextResponse.json({
+        answer: `Namaste, ${firstName}! 👋 How can I help you today? You can ask me about MoSPI statistical methodology (CPI, GDP, PLFS, ASI), your FRAC competency gaps, or recommended iGOT courses.`,
+        citations: [],
+      }, { status: 200 });
+    }
+
     // Keyword-based retrieval from stored manual chunks
     const allChunks = getAllStoredChunks();
     const qLower = question.toLowerCase();
@@ -222,21 +234,18 @@ Your role is to help government statistical officers learn concepts, understand 
 
 Officer Profile:
 - Name: ${safeOfficer.name}
-- Designation: ${safeOfficer.designation} (Cadre: ${safeOfficer.cadreRank})
+- Designation: ${safeOfficer.designation} (${safeOfficer.cadreRank})
 - Division: ${safeOfficer.division}
-- Experience: ${safeOfficer.experienceLevel} years
-- Job Role: ${safeOfficer.jobRole}
 - Top Competency Gaps: ${topGaps || "No gaps — all targets met"}
 
 Relevant Manual Passages:
 ${contextSnippets}
 
 Response Guidelines:
-- If the user greets you (e.g. "hi", "hello", "namaste"), greet them warmly and professionally as ${safeOfficer.name} (${safeOfficer.designation}), and state how you can assist them with MoSPI manuals, competencies, or courses.
-- Be helpful, clear, and concise (max 3-4 paragraphs).
-- Cite official manual sources (e.g. CPI Compilation Manual, PLFS Operational Guidelines, SNA 2008) when explaining methodology.
-- If recommending a course, refer to iGOT Karmayogi or NSSTA TPAC courses.
-- Use formal but encouraging language appropriate for an Indian civil service officer.`;
+- Keep your answers concise, direct, and conversational (1 to 2 short paragraphs max).
+- Answer the user's specific question directly. Do NOT dump unsolicited background or course lists unless specifically asked.
+- Cite official manual sources (e.g., CPI Compilation Manual, PLFS Operational Guidelines) when explaining methodology.
+- Use encouraging, professional language suited for an Indian civil service officer.`;
 
     let answer = "";
     try {

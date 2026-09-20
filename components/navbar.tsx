@@ -503,18 +503,6 @@ export function Navbar({
                   </span>
                 </div>
               </DropdownMenuItem>
-              {role === "OFFICER" && (
-                <DropdownMenuItem
-                  onSelect={() => {
-                    window.setTimeout(
-                      () => document.getElementById("officer-switcher")?.focus(),
-                      0
-                    );
-                  }}
-                >
-                  Switch officer or workspace view
-                </DropdownMenuItem>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

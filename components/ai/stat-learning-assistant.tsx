@@ -63,11 +63,17 @@ export function StatLearningAssistant({ officer, competencies }: StatLearningAss
     setIsLoading(true);
 
     try {
+      const historyPayload = messages
+        .filter((m) => m.id !== "greeting")
+        .slice(-6)
+        .map((m) => ({ role: m.role, content: m.content }));
+
       const res = await fetch("/api/ai/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: query,
+          history: historyPayload,
           officer: {
             name: officer.name,
             designation: officer.designation,
@@ -100,7 +106,7 @@ export function StatLearningAssistant({ officer, competencies }: StatLearningAss
         throw new Error("API error");
       }
     } catch {
-      // Fallback: generate a helpful static response for demo purposes
+      // Fallback: generate a helpful domain response for demo purposes
       const fallbackResponse = generateFallbackResponse(query, officer, competencies);
       setMessages((prev) => [
         ...prev,
@@ -271,7 +277,11 @@ export function StatLearningAssistant({ officer, competencies }: StatLearningAss
 
 // Fallback response generator for demo (when API is unavailable)
 function generateFallbackResponse(query: string, officer: Officer, competencies: CompetencyItem[]): string {
-  const q = query.toLowerCase();
+  const q = query.toLowerCase().trim();
+
+  if (/^(hi|hello|hey|namaste|greetings|good morning|good afternoon|good evening)\b/i.test(q)) {
+    return `Namaste, ${officer.name}! 👋 I am your MoSPI × iGOT Statistical Learning Assistant.\n\nAs a ${officer.designation} in the ${officer.division}, I can help you with:\n• Statistical methodology from NSSTA manuals (CPI, GDP, PLFS, ASI)\n• Your FRAC competency gaps and learning priorities\n• Recommended iGOT and NSSTA TPAC courses\n• Assessment preparation and quiz practice\n\nHow can I assist your statistical learning today?`;
+  }
 
   if (q.includes("jevons") || q.includes("elementary") || q.includes("cpi")) {
     return "The Jevons formula computes elementary aggregate indices as the unweighted geometric mean of price relatives across quoted markets:\n\nP = (p₁/p₀ × p₂/p₀ × … × pₙ/p₀)^(1/n)\n\nThis is used for All-India CPI rural/urban compilation at the district level before aggregation using Laspeyres weights.\n\n📖 Source: CPI Compilation Manual, Chapter 4.2 — Elementary Index Formula";

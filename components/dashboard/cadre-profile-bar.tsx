@@ -65,7 +65,7 @@ export function CadreProfileBar({ currentOfficer, onSelectOfficer, competencies,
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger id="officer-switcher" className="role-switcher" aria-label="Switch officer or workspace view">
+          <DropdownMenuTrigger id="officer-switcher" className="role-switcher" aria-label="Switch officer profile">
             <span>Officer: <strong>{currentOfficer.name.split(" ")[0]} ({currentOfficer.cadreRank})</strong></span>
             <ChevronDown aria-hidden="true" />
           </DropdownMenuTrigger>
